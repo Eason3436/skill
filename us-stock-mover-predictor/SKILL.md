@@ -21,7 +21,7 @@ description: >
 本文件分成三層,**閱讀與套用優先序由上而下**:
 
 1. **§0 通用化準則(Generalization Doctrine)** — 規則必須怎麼寫、怎麼讀的元規則。
-2. **§1 核心不變量(Core Invariants, INV-1 … INV-18)** — 唯一的規範來源。
+2. **§1 核心不變量(Core Invariants, INV-1 … INV-19)** — 唯一的規範來源。
    每條原則只寫一次,帶齊可觀測條件、數值門檻、必填欄位、必用措辭。
 3. **§2 動態 universe 與題材分類 / §3 執行機制 / §4 訊號與輸出** — 操作層,
    負責「執行」不變量,不重述規則,只引用 `INV-*`。
@@ -404,8 +404,9 @@ final 前必跑下列稽核;發現更好/被漏的名稱要顯式 rollback,不�
 - **Rejected Leader Challenge:** final 前列 current move / session-high move / 08:45→09:10(或 open→current)
   persistence 三項最強的五檔;任一被拒/watch-only 在兩項上勝過某 final pick → 重開 Stage 3.5,或給硬理由
   (直接負面/壞 K 線/R:R 失敗/gap 已消耗/無 OKX K 線)。
-- **Final Review Agent(對抗式紅隊,即使 Stage 3.5 已過仍必跑):** 對每個 final 候選查 18 項完整性:
-  live_data / price_semantics / catalyst / negative_news / event_calendar / peer_and_market / tradeability /
+- **Final Review Agent(對抗式紅隊,即使 Stage 3.5 已過仍必跑):** 對每個 final 候選查 19 項完整性:
+  live_data / price_semantics / catalyst / source_recency(INV-19:每則來源發布時間在 freshness window 內、非舊文)/
+  negative_news / event_calendar / peer_and_market / tradeability /
   momentum_leadership / priced_in_rotation / failure_memory / sector_thesis / coverage / entry_timing /
   output / hard_catalyst_extension / company_specific_override / basket_decoupling / sector_breadth_upgrade。
   verdict:`pass` / `conditional_pass`(只能 confirmation_only) / `fail`(移除→rollback/降級,無人過 → no trade)。
@@ -430,6 +431,31 @@ final 前必跑下列稽核;發現更好/被漏的名稱要顯式 rollback,不�
 - 單一來源 → 最高 `MEDIUM-HIGH`;單一來源且涉 China 政策/出口管制/訴訟/監管/未證實供應鏈 → 最高 `MEDIUM`。
 - gap 延伸:盤前 > `+8%` → 最高 `MEDIUM-HIGH`(除非催化品質與同儕確認都強);> `+15%` → 不給盤前買點,只允許開盤後確認。
 - 兩日催化鏈:昨天同催化已 > `+3%` → 今天先降一級;若今天盤前從早高衰退 → 最終只能 `confirmation_only`/`watch_only`/`reject`。
+
+### INV-19 來源時效閘門(Source Recency Gate)
+
+這條防的是**和 INV-4 不同**的失誤:INV-4 假設催化日期正確、只判斷市場是否已消化;
+INV-19 防的是「**AI 撈到舊報導 / 過時財報,誤當成今天的新消息**」與「**日期算錯去搜了錯誤日期**」。
+
+**日期錨點必須由程式決定:** 先跑 `scripts/clock.py`(§4.1),取得正確的 `trading_day_target`、
+`news_search_date`、`yesterday_date`、`freshness_window_start_et`,以及已填好日期的搜尋字串。
+AI **不得手算**台北→UTC→ET / 夏令冬令,也不得自行猜測 `{DATE}`(手算 DST 出錯就會搜到舊資料)。
+
+**每一則支持催化的來源必填:** `source_published_at`(該文/該則的實際發布時間)、
+`source_recency: fresh | stale_or_undated`、`recency_basis: article_date | scheduled_event_date`。
+
+規則(可觀測):
+- 只有 `source_published_at >= freshness_window_start_et`(預設 = `yesterday_date 00:00 ET`,即涵蓋
+  昨晚盤後 + 隔夜 + 今晨)的來源,才能算**今天的 fresh catalyst**。
+- 無法確認發布時間、或早於視窗 → `source_recency: stale_or_undated`:只能當背景,**不得支持 HIGH**,
+  也不得拿來當「今天的新催化」推升評級;若整個 bullish thesis 只靠這種來源 → 最高 `MEDIUM`,且須明寫風險。
+- **搜尋查詢一律帶 `news_search_date` / `yesterday_date`**(用 clock.py 吐出的字串);禁止無日期的
+  「{TICKER} stock news」這類查詢(會把幾個月前的舊文排在前面)。
+- 排程型事件(今日財報 / 經濟數據 / FDA / investor day)例外:以**事件日**判定時效,不以文章發布日判定;
+  但仍須確認該事件確實落在 `trading_day_target`(或其盤前/盤後窗),而非過去已發生的同類事件。
+- 若同一催化的最新可信來源其實是數日前的舊聞被重新轉載 → 套 INV-4 的 `repeated_headline` / `market_already_paid`。
+
+必用措辭:`Source recency: {fresh|stale_or_undated}; published {source_published_at}; freshness window from {freshness_window_start_et}.`
 
 ---
 
@@ -538,7 +564,8 @@ Source depth、Negative search、Peer/ETF confirmation、Event risk、Tradeabili
 
 對每檔輸出 Markdown 子段,涵蓋:current_move + `momentum_leadership_status` + `extension_interpretation`(INV-6);
 catalyst_quality + `hard_catalyst_present`/`extension_type`/`gap_extension_penalty_allowed`/
-`company_specific_catalyst_override`(INV-5/7) + 完整 lifecycle 欄位(INV-4);
+`company_specific_catalyst_override`(INV-5/7) + 完整 lifecycle 欄位(INV-4)
++ 每則來源的 `source_published_at`/`source_recency`/`recency_basis`(INV-19);
 move_phase + freshness(INV-9);negative_search;peer_confirmation + `basket_proxy_decoupling`/breadth(INV-7/10);
 `failure_memory_check` 全欄位(INV-8);product_line_peer_check(§2.3);macro_event_signal_reset(INV-3);
 post_earnings_open_premium;leveraged_etf_proxy_check;reversal_bucket;earnings_and_event_risk;
@@ -622,12 +649,18 @@ final 排除 already_priced_in/fading_premarket/blowoff_risk/confirmation_needed
 美股關鍵時點(ET):04:00 盤前開始;08:30 常見經濟數據;09:30 開盤(命中起點);16:00 收盤(命中終點)。
 命中視窗 09:30–16:00 ET = 台北 21:30 至次日 04:00。
 
+**強制先跑 `scripts/clock.py`** 取得時間錨點:它把台北→UTC→ET(自動處理夏令/冬令)、
+`minutes_until_open`、`trading_day_target`、`news_search_date`、`yesterday_date`、
+`freshness_window_start_et` 算死,並吐出**已填好正確日期的搜尋字串**。AI 不得手算日期或自猜
+`{DATE}`(手算 DST 出錯 → 搜到錯誤日期 → 撈到舊資料,正是 INV-19 要防的)。
+
 每份報告開頭必輸出 `[PREDICTION_TIME_CONTEXT]`(query_time_local/et、minutes_until_open、
-trading_day_target、session_now、news_search_date、prediction_window)。
+trading_day_target、session_now、news_search_date、prediction_window),數值取自 clock.py。
 
 特殊情境:盤中(台北 21:00–04:00)→ 轉 scanner;盤後 → 看是否已有財報結果;週末 → 預測週一但訊號鮮度差需告知。
-Web search 用含日期/時區查詢(premarket movers {DATE}、earnings calendar、economic calendar);
-不搜「stock price today」(尚未發生)。
+Web search 一律用 clock.py 吐出的**已填日期**字串(premarket movers {news_search_date}、
+earnings after the close {yesterday_date} 等);禁止無日期查詢(如「{TICKER} stock news」,會把舊文排前面);
+不搜「stock price today」(尚未發生)。每則來源須核對發布時間並標 `source_recency`(INV-19)。
 
 ### 4.2 六大訊號(可預測性由高到低)
 
@@ -725,6 +758,9 @@ strongest_pick_probability、data_freshness、disclaimer(預測 ≠ 保證,HIGH 
 
 ## Scripts / References 索引
 
+- `scripts/clock.py` — **時間/新聞時效錨點**(離線,免網路)。把台北→UTC→ET(夏令/冬令自動)、
+  trading_day_target、news_search_date、yesterday_date、freshness_window、已填日期的搜尋字串算死。
+  Phase 0 必先跑。用法:`python3 scripts/clock.py`(或 `--utc ...` 測試 / `--json`)。對應 INV-19。
 - `scripts/stage1_scan.py` — **Stage 1 全清單掃描器**(程式保證覆蓋率與數字真實性)。
   一次列舉全部 live `instCategory=3` 標的並算好 current/high/量能;Stage 1 必先跑此腳本。
   用法:`python3 scripts/stage1_scan.py`(markdown)或 `--json`。僅用 OKX public API,免 key,唯讀。
