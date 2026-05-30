@@ -438,6 +438,7 @@ final 前必跑下列稽核;發現更好/被漏的名稱要顯式 rollback,不�
 ### 2.1 建立 universe(live 優先)
 
 1. 從 OKX live `instCategory=3` instruments 建全 universe(`universe_source: okx_live_instCategory_3`)。
+   實作上跑 `scripts/stage1_scan.py`(它同時完成列舉 + Stage 1 數據,見 §3.2)。
 2. live 失敗才用靜態 fallback `references/okx_stock_universe.md`(`universe_source: static_fallback`)。
 3. universe 大小**以 live 回傳為準,不寫死數字**;`okx_universe_count` 由 live 填。
 4. Stage 1 每檔恰好出現一次;final buy 資格需 OKX ticker + K 線;pre-IPO / web-only 可 `watch only`,不可 final buy。
@@ -483,6 +484,8 @@ AMC 同產品線 read-through:來源 beat 幅度 `> +5%` vs 共識,直接 peer S
 ### 3.1 強制執行順序
 
 1. 建 live universe(§2.1);失敗用 fallback。
+   **Stage 1 的全清單掃描必須先執行 `scripts/stage1_scan.py`**(見 §3.2),
+   Stage 1 的價格/漲幅數字只能來自該腳本輸出,不得由模型憑記憶填寫或腦補。
 2. 判 `scan_mode`(INV-2)。
 3. 判 `macro_data_gate_active`(INV-3)。
 4. gate active 且在 first_full_rescan 前 → Stage 1 coverage + `macro_pending_watchlist`,停在 final 前。
@@ -493,9 +496,21 @@ AMC 同產品線 read-through:來源 beat 幅度 `> +5%` vs 共識,直接 peer S
 
 不得跳過安靜 ticker;不得不列每檔就總結板塊;不列出每列就不得宣稱完整 coverage。
 
-### 3.2 Stage 1:全 universe 淺掃
+### 3.2 Stage 1:全 universe 淺掃(數據由程式保證,非 AI 自律)
 
-每檔一列:`# | Ticker | OKX instId | OKX live data | sodUtc0/prev close | Current price |
+**強制:先跑 `scripts/stage1_scan.py`。** 此腳本用 OKX public API 一次列舉全部 live
+`instCategory=3` 標的,並算好每支的 `current_vs_sodUtc0_pct`、`high24h_vs_sodUtc0_pct`、
+`high_to_current_pct`、24h 量能。它的存在是為了根治「60+ 支太多 → AI 偷懶或腦補」:
+- AI **不得新增、刪除、合併**腳本輸出的任何一列(覆蓋率由程式保證,不是 AI 自己宣稱)。
+- Stage 1 的**價格與漲幅數字只能來自腳本**;AI 不得憑記憶或印象填數字。
+- 腳本標 `unavailable` 的標的是資料盲區,只能 watch、不得 final buy,也不得假裝有數據。
+- 腳本失敗(`universe_source: UNAVAILABLE`)才改用 `references/okx_stock_universe.md`
+  靜態 fallback,並明確標 `static_fallback`;同樣不得腦補數字。
+- 注意 `high24h` 含前一日,只是 session high 的粗略代理;真正盤前/盤中 session high 需對
+  漏斗存活者(20→7)另抓 candles 驗證(INV-15)。
+
+AI 在腳本輸出的真實數據上,補完每檔的判斷欄(catalyst/sector/decision 等)。完整列(含判斷欄):
+`# | Ticker | OKX instId | OKX live data | sodUtc0/prev close | Current price |
 Current vs sodUtc0 % | Session high vs sodUtc0 % | Catalyst found? | Sector/product-line impulse |
 Macro gate/reset | Earnings premium | ETF proxy | Reversal bucket | Initial risk | Stage 1 score | Stage 1 decision`。
 
@@ -695,8 +710,11 @@ strongest_pick_probability、data_freshness、disclaimer(預測 ≠ 保證,HIGH 
 | 數據 | OKX 已實現 chg | 盤前異動 + 行事曆 + 隔夜消息 |
 | 結論 | 高信心(已發生) | 機率分級(尚未發生) |
 
-## References 索引
+## Scripts / References 索引
 
+- `scripts/stage1_scan.py` — **Stage 1 全清單掃描器**(程式保證覆蓋率與數字真實性)。
+  一次列舉全部 live `instCategory=3` 標的並算好 current/high/量能;Stage 1 必先跑此腳本。
+  用法:`python3 scripts/stage1_scan.py`(markdown)或 `--json`。僅用 OKX public API,免 key,唯讀。
 - `references/okx_stock_universe.md` — OKX `instCategory=3` 靜態 **fallback** 範例(live 優先;清單與題材桶皆非封閉)。
 - `references/premarket_signals.md` — 六大訊號搜尋手冊與隔夜消息模板(規則以 §1 INV-* 為準)。
 - `references/entry_exit_playbook.md` — 進出場執行手冊(三策略、停損、雙模式部位)。
