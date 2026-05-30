@@ -542,6 +542,14 @@ bear_case / why_it_can_still_work / confirmation_needed / invalid_if;`stage_3_de
 
 ### 3.5 Stage 3.5:OKX 多時框 K 線驗證(Stage 3 全員,final 前必做)
 
+**強制:先跑 `scripts/stage35_kline.py {7 支 ticker}`。** 此腳本對每支抓 OKX `1m/5m/15m/1h/1d`
+真實 K 線,算好 price_semantics(reference_close/target_3pct/current/day_high/`did_hit_plus_3`/
+high_to_current_pullback)、各時框結構與量能啟發式標籤、timestamp_alignment、缺時框上限。
+- K 線數字、結構、量能、did_hit_plus_3 **只能來自腳本**;AI 不得編造或修改。
+- 結構/量能標籤是**客觀啟發式輸入**,AI 仍須結合催化、VWAP、R:R 做最終 verdict(非腳本決定)。
+- 任一時框 `unavailable`(尤其 15m/1h/1d)→ 最終不得優於 `confirmation_needed`(腳本會標 cap)。
+- `okx_live_data: unavailable` 的標的不得 final buy,不得腦補。
+
 資料:`1m/5m/15m/1h/1d` + 現價 + 盤前高/時間/低 + 近似 VWAP/midpoint + 距高 + 最後 20-30 分盤前趨勢 + 量能。
 輸出涵蓋:session_mode、kline_provider/provider_violation(INV-14)、timestamp_alignment(INV-15)、
 price_semantics(reference_close/target_3pct_price/current/session_high/pullback/`did_hit_plus_3`/`gap_hit`/
@@ -715,6 +723,9 @@ strongest_pick_probability、data_freshness、disclaimer(預測 ≠ 保證,HIGH 
 - `scripts/stage1_scan.py` — **Stage 1 全清單掃描器**(程式保證覆蓋率與數字真實性)。
   一次列舉全部 live `instCategory=3` 標的並算好 current/high/量能;Stage 1 必先跑此腳本。
   用法:`python3 scripts/stage1_scan.py`(markdown)或 `--json`。僅用 OKX public API,免 key,唯讀。
+- `scripts/stage35_kline.py` — **Stage 3.5 多時框 K 線抓取器**(數字真實性由程式保證)。
+  對漏斗存活的 7 支抓 OKX `1m/5m/15m/1h/1d`,算好 price_semantics / 結構 / 量能 / 時間戳對齊;
+  Stage 3.5 必先跑此腳本。用法:`python3 scripts/stage35_kline.py NVDA MU SOXL`(或 `--json`)。
 - `references/okx_stock_universe.md` — OKX `instCategory=3` 靜態 **fallback** 範例(live 優先;清單與題材桶皆非封閉)。
 - `references/premarket_signals.md` — 六大訊號搜尋手冊與隔夜消息模板(規則以 §1 INV-* 為準)。
 - `references/entry_exit_playbook.md` — 進出場執行手冊(三策略、停損、雙模式部位)。
