@@ -522,6 +522,11 @@ gate active 時用 `macro_pending_watchlist`(INV-3);槓桿 ETF Signal 1 > +3% �
 
 ### 3.3 Stage 2:Top 20 中度研究
 
+**數據面先跑 `scripts/sweep_breadth.py`**:它從 OKX 算好漲幅榜、Missed Winner / Intraday Hit
+Sweep 候選清單(current ≥ +2.5% / high ≥ +3%)、以及各題材 breadth / basket decoupling 成員計數
+(INV-7 / INV-10 / INV-16)。AI 不得遺漏腳本列出的任何 sweep 候選,也不得在 decoupling=YES 時
+用寬論述整組 reject。**催化、新聞、lifecycle、負面搜尋等判讀仍由 AI 做**(腳本不碰)。
+
 每檔一列含(對應 INV):Ticker、instId、live data、current/high vs sodUtc0、prior day move、`move_phase`(INV-9)、
 Catalyst、`Lifecycle`(INV-4)、Freshness/surprise、Product-line peer(§2.3)、Sector rebound/breadth(INV-10)、
 `Sector thesis confidence`(INV-7)、Macro reset(INV-3)、Earnings open premium、ETF proxy、Reversal bucket、
@@ -726,6 +731,10 @@ strongest_pick_probability、data_freshness、disclaimer(預測 ≠ 保證,HIGH 
 - `scripts/stage35_kline.py` — **Stage 3.5 多時框 K 線抓取器**(數字真實性由程式保證)。
   對漏斗存活的 7 支抓 OKX `1m/5m/15m/1h/1d`,算好 price_semantics / 結構 / 量能 / 時間戳對齊;
   Stage 3.5 必先跑此腳本。用法:`python3 scripts/stage35_kline.py NVDA MU SOXL`(或 `--json`)。
+- `scripts/sweep_breadth.py` — **漲幅榜 + Sweep + 板塊 breadth/decoupling 計數器**(INV-7/INV-10/INV-16)。
+  程式列舉 Missed Winner / Intraday Hit Sweep 候選與各題材成員計數,防止 AI 漏算或一刀切。
+  Stage 2 數據面 + 兩個 Sweep 必跑。用法:`python3 scripts/sweep_breadth.py`(或 `--json` / `--top N`)。
+  注意:theme 分組為 references 範例的輔助計數(非權威),untagged 標的 AI 須動態分類。
 - `references/okx_stock_universe.md` — OKX `instCategory=3` 靜態 **fallback** 範例(live 優先;清單與題材桶皆非封閉)。
 - `references/premarket_signals.md` — 六大訊號搜尋手冊與隔夜消息模板(規則以 §1 INV-* 為準)。
 - `references/entry_exit_playbook.md` — 進出場執行手冊(三策略、停損、雙模式部位)。
