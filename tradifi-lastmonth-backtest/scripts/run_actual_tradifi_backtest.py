@@ -21,7 +21,9 @@ import ccxt
 
 
 TAIPEI = ZoneInfo("Asia/Taipei")
-HIGH_VOL_BLACKLIST = {"ASTS", "AXTI", "CRDO", "ORCL", "RKLB", "SOXL", "SPCX"}
+# Private-company / tokenized-equity perps that are too thin or volatile to trade.
+# OPENAI and ANTHROPIC are permanently excluded (illiquid pre-IPO tokens).
+HIGH_VOL_BLACKLIST = {"ANTHROPIC", "ASTS", "AXTI", "CRDO", "OPENAI", "ORCL", "RKLB", "SOXL", "SPCX"}
 
 
 @dataclass(frozen=True)
