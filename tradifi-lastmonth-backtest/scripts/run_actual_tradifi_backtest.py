@@ -48,6 +48,8 @@ class SymbolPoint:
     symbol: str
     basis: float
     reversion_improvement: float = 0.0
+    b_price: float = 0.0
+    o_price: float = 0.0
 
 
 def main() -> int:
@@ -80,6 +82,17 @@ def main() -> int:
     parser.add_argument("--forced-close-slippage", type=float, default=0.0030,
                         help="Per-leg slippage paid when a position is force-closed on a time stop.")
     parser.add_argument("--seed", type=int, default=42, help="RNG seed for the fill/slippage simulation.")
+    # ── Per-leg liquidation modelling (leverage actually matters here) ──────────
+    parser.add_argument("--model-liquidation", action="store_true",
+                        help="Track each leg's price drawdown while a position is open and force-close "
+                             "(with a liquidation penalty) when one leg breaches maintenance margin.")
+    parser.add_argument("--maintenance-margin", type=float, default=0.01,
+                        help="Maintenance-margin rate per leg; liquidation triggers at adverse move >= 1/leverage - mmr.")
+    parser.add_argument("--liq-penalty", type=float, default=0.0075,
+                        help="Liquidation penalty (fee + bankruptcy-price gap) charged on notional when a leg is liquidated.")
+    parser.add_argument("--auto-flatten-buffer", type=float, default=0.0,
+                        help="If >0, pre-emptively close BOTH legs (taker, no liquidation penalty) when the worst leg "
+                             "loss reaches (1/leverage - mmr - buffer). Models a protective auto-flatten circuit breaker.")
     parser.add_argument("--max-hold-minutes", type=int, default=90)
     parser.add_argument("--force-close-end", action="store_true", help="Close any remaining open spread at the final candle.")
     parser.add_argument("--min-edge", type=float, default=0.0005)
@@ -165,6 +178,10 @@ def main() -> int:
         retreat_slippage=args.retreat_slippage,
         forced_close_slippage=args.forced_close_slippage,
         rng=cost_rng,
+        leverage=args.leverage if args.model_liquidation else 0,
+        maintenance_margin=args.maintenance_margin,
+        liq_penalty=args.liq_penalty,
+        auto_flatten_buffer=args.auto_flatten_buffer,
     )
     daily = daily_summary(trades, args.capital, start_tpe.date(), (end_tpe - timedelta(days=1)).date())
     result = {
@@ -185,6 +202,18 @@ def main() -> int:
             "maker_fee": args.maker_fee,
             "round_trip_maker_fee": args.maker_fee * 4,
             "simulate_costs": args.simulate_costs,
+            "model_liquidation": args.model_liquidation,
+            "liquidation_model": (
+                {
+                    "leverage": args.leverage,
+                    "maintenance_margin": args.maintenance_margin,
+                    "liq_threshold_adverse_move": round(1.0 / args.leverage - args.maintenance_margin, 6),
+                    "liq_penalty": args.liq_penalty,
+                    "auto_flatten_buffer": args.auto_flatten_buffer,
+                }
+                if args.model_liquidation
+                else None
+            ),
             "cost_model": (
                 {
                     "taker_fee": args.taker_fee,
@@ -317,7 +346,7 @@ def build_basis_series(
             previous_abs = [abs((rows[j][1] / rows[j][2] - 1.0) - basis_mean) for j in range(start, idx) if rows[j][2] > 0]
             if previous_abs:
                 improvement = max(previous_abs) - abs(basis)
-        points.append(SymbolPoint(ts, symbol, basis, improvement))
+        points.append(SymbolPoint(ts, symbol, basis, improvement, b_price=b, o_price=o))
     return points
 
 
@@ -341,14 +370,54 @@ def run_portfolio_backtest(
     retreat_slippage: float = 0.0020,
     forced_close_slippage: float = 0.0030,
     rng: random.Random | None = None,
+    leverage: int = 0,
+    maintenance_margin: float = 0.01,
+    liq_penalty: float = 0.0075,
+    auto_flatten_buffer: float = 0.0,
 ) -> list[Trade]:
     by_ts: dict[datetime, list[SymbolPoint]] = {}
     for points in series.values():
         for point in points:
             by_ts.setdefault(point.ts, []).append(point)
 
+    # Adverse per-leg move that wipes the maintenance margin (liquidation), and the
+    # earlier protective auto-flatten threshold if a circuit breaker is configured.
+    liq_threshold = (1.0 / leverage - maintenance_margin) if leverage > 0 else None
+    flatten_threshold = (
+        liq_threshold - auto_flatten_buffer
+        if liq_threshold is not None and auto_flatten_buffer > 0
+        else None
+    )
+
     def _side(point: SymbolPoint) -> str:
         return "short_binance_long_okx" if point.basis > 0 else "long_binance_short_okx"
+
+    def _worst_leg_loss(entry: SymbolPoint, current: SymbolPoint) -> float:
+        """Worst (most negative) single-leg PnL fraction since entry; >0 means a loss."""
+        if entry.b_price <= 0 or entry.o_price <= 0:
+            return 0.0
+        if entry.basis > 0:  # short Binance, long OKX
+            b_leg = (entry.b_price - current.b_price) / entry.b_price
+            o_leg = (current.o_price - entry.o_price) / entry.o_price
+        else:  # long Binance, short OKX
+            b_leg = (current.b_price - entry.b_price) / entry.b_price
+            o_leg = (entry.o_price - current.o_price) / entry.o_price
+        return -min(b_leg, o_leg)
+
+    def _liquidate(entry: SymbolPoint, current: SymbolPoint) -> Trade:
+        # Forced unwind at the adverse point: spread PnL to here + both legs taker-closed,
+        # plus a liquidation penalty (fee + bankruptcy-price gap) on the wiped leg.
+        gross = (abs(entry.basis) - abs(current.basis)) * notional
+        fees = notional * maker_fee * 2
+        taker = notional * taker_fee * 2
+        slip = notional * slippage_per_leg * 2 + notional * forced_close_slippage * 2 + notional * liq_penalty
+        net = gross - fees - taker - slip
+        return Trade(
+            symbol=entry.symbol, entry_ts=entry.ts, exit_ts=current.ts, side=_side(entry),
+            notional=notional, entry_basis=entry.basis, exit_basis=current.basis,
+            gross=gross, fees=fees, funding=0.0, net=net, exit_reason="liquidation",
+            taker_fees=taker, slippage=slip,
+        )
 
     def _close(entry: SymbolPoint, current: SymbolPoint, *, converged: bool, reason: str) -> Trade:
         gross = (abs(entry.basis) - abs(current.basis)) * notional
@@ -409,6 +478,18 @@ def run_portfolio_backtest(
             current = point_by_symbol.get(open_pos.symbol)
             if current is None:
                 continue
+            # Per-leg liquidation / protective auto-flatten check (leverage-dependent).
+            if liq_threshold is not None:
+                leg_loss = _worst_leg_loss(open_pos, current)
+                if leg_loss >= liq_threshold:
+                    trades.append(_liquidate(open_pos, current))
+                    open_pos = None
+                    continue
+                if flatten_threshold is not None and leg_loss >= flatten_threshold:
+                    # Circuit breaker: close both legs at market before liquidation (no penalty).
+                    trades.append(_close(open_pos, current, converged=False, reason="auto_flatten"))
+                    open_pos = None
+                    continue
             hold_minutes = (current.ts - open_pos.ts).total_seconds() / 60.0
             converged = abs(current.basis) <= exit_threshold
             timed_out = hold_minutes >= max_hold_minutes
@@ -572,6 +653,8 @@ def totals(trades: list[Trade], daily: list[dict]) -> dict[str, float | int]:
         "worst_trade_usdt": round(min((t.net for t in trades), default=0.0), 6),
         "single_leg_retreats": sum(1 for t in trades if t.exit_reason == "single_leg_retreat"),
         "time_stops": sum(1 for t in trades if t.exit_reason == "time_stop"),
+        "liquidations": sum(1 for t in trades if t.exit_reason == "liquidation"),
+        "auto_flattens": sum(1 for t in trades if t.exit_reason == "auto_flatten"),
     }
 
 

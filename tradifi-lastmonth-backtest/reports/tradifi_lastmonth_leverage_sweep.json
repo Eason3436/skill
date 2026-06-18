@@ -1,0 +1,106 @@
+{
+  "capital": 100,
+  "timeframe": "1m",
+  "date_range_taipei": {
+    "start": "2026-05-18",
+    "end": "2026-06-16"
+  },
+  "symbols": "GLW,XLE,COHR,BMNR,ARM,HIMS,QCOM,USAR,MRVL,CSCO",
+  "entry": 0.004,
+  "exit": 0.001,
+  "seeds": [
+    1,
+    7,
+    42,
+    99,
+    123
+  ],
+  "cost_model": {
+    "maker_fee": 0.0002,
+    "taker_fee": 0.0005,
+    "slippage_per_leg": 0.0005,
+    "fill_rate": 0.9,
+    "single_leg_rate": 0.05,
+    "close_fill_rate": 0.8,
+    "retreat_slippage": 0.002,
+    "forced_close_slippage": 0.003
+  },
+  "liquidation_model": {
+    "maintenance_margin": 0.01,
+    "liq_penalty": 0.0075
+  },
+  "by_leverage": [
+    {
+      "leverage": 5,
+      "per_leg_notional_usdt": 250.0,
+      "mean_net_pnl_usdt": 24.72,
+      "min_net_pnl_usdt": 20.03,
+      "max_net_pnl_usdt": 29.38,
+      "mean_monthly_return_pct": 24.7,
+      "mean_ending_equity_usdt": 124.72,
+      "mean_liquidations": 0,
+      "mean_slippage_usdt": 181.8,
+      "note": ""
+    },
+    {
+      "leverage": 10,
+      "per_leg_notional_usdt": 500.0,
+      "mean_net_pnl_usdt": 49.44,
+      "min_net_pnl_usdt": 40.07,
+      "max_net_pnl_usdt": 58.77,
+      "mean_monthly_return_pct": 49.4,
+      "mean_ending_equity_usdt": 149.44,
+      "mean_liquidations": 0,
+      "mean_slippage_usdt": 363.7,
+      "note": ""
+    },
+    {
+      "leverage": 12,
+      "per_leg_notional_usdt": 600.0,
+      "mean_net_pnl_usdt": 59.33,
+      "min_net_pnl_usdt": 48.08,
+      "max_net_pnl_usdt": 70.52,
+      "mean_monthly_return_pct": 59.3,
+      "mean_ending_equity_usdt": 159.33,
+      "mean_liquidations": 0,
+      "mean_slippage_usdt": 436.4,
+      "note": ""
+    },
+    {
+      "leverage": 15,
+      "per_leg_notional_usdt": 750.0,
+      "mean_net_pnl_usdt": 74.16,
+      "min_net_pnl_usdt": 60.1,
+      "max_net_pnl_usdt": 88.15,
+      "mean_monthly_return_pct": 74.2,
+      "mean_ending_equity_usdt": 174.16,
+      "mean_liquidations": 0,
+      "mean_slippage_usdt": 545.5,
+      "note": ""
+    },
+    {
+      "leverage": 20,
+      "per_leg_notional_usdt": 1000.0,
+      "mean_net_pnl_usdt": 44.35,
+      "min_net_pnl_usdt": 32.55,
+      "max_net_pnl_usdt": 60.32,
+      "mean_monthly_return_pct": 44.3,
+      "mean_ending_equity_usdt": 144.35,
+      "mean_liquidations": 3.8,
+      "mean_slippage_usdt": 773.2,
+      "note": ""
+    },
+    {
+      "leverage": 30,
+      "per_leg_notional_usdt": 1500.0,
+      "mean_net_pnl_usdt": -251.42,
+      "min_net_pnl_usdt": -273.5,
+      "max_net_pnl_usdt": -226.55,
+      "mean_monthly_return_pct": -251.4,
+      "mean_ending_equity_usdt": -151.42,
+      "mean_liquidations": 16.6,
+      "mean_slippage_usdt": 1419.0,
+      "note": "isolated margin floors at -100 (ruin); model does not cap, so 30x literal figure overshoots"
+    }
+  ]
+}
