@@ -95,6 +95,13 @@ def main() -> int:
     parser.add_argument("--auto-flatten-buffer", type=float, default=0.0,
                         help="If >0, pre-emptively close BOTH legs (taker, no liquidation penalty) when the worst leg "
                              "loss reaches (1/leverage - mmr - buffer). Models a protective auto-flatten circuit breaker.")
+    parser.add_argument("--maker-only", action="store_true",
+                        help="Strict post-only execution: zero out base per-leg slippage (you don't cross the spread) "
+                             "but lower the fill rate and raise the single-leg rate (you miss trades / get adverse fills). "
+                             "Overrides slippage-per-leg/fill-rate/single-leg-rate/close-fill-rate unless they are set.")
+    parser.add_argument("--cost-gate", action="store_true",
+                        help="Pre-trade cost gate: only open trades whose basis edge exceeds round-trip fees AND the "
+                             "expected round-trip slippage (slippage-per-leg * 4). Skips marginal trades.")
     parser.add_argument("--max-hold-minutes", type=int, default=90)
     parser.add_argument("--force-close-end", action="store_true", help="Close any remaining open spread at the final candle.")
     parser.add_argument("--min-edge", type=float, default=0.0005)
@@ -160,6 +167,16 @@ def main() -> int:
         series[base] = build_basis_series(base, rows, args.reversion_lookback_bars)
         time.sleep(0.05)
 
+    # (A) Maker-only preset: don't cross the spread (≈0 base slippage) but accept a
+    # lower fill rate and more single-leg fills (adverse selection / missed trades).
+    if args.maker_only:
+        args.slippage_per_leg = 0.0001
+        args.fill_rate = 0.65
+        args.single_leg_rate = 0.12
+        args.close_fill_rate = 0.75
+    # (B) Pre-trade cost gate: require basis edge to clear expected round-trip slippage.
+    expected_slippage_gate = args.slippage_per_leg * 4 if args.cost_gate else 0.0
+
     cost_rng = random.Random(args.seed) if args.simulate_costs else None
     trades = run_portfolio_backtest(
         series,
@@ -184,6 +201,7 @@ def main() -> int:
         maintenance_margin=args.maintenance_margin,
         liq_penalty=args.liq_penalty,
         auto_flatten_buffer=args.auto_flatten_buffer,
+        expected_slippage_gate=expected_slippage_gate,
     )
     daily = daily_summary(trades, args.capital, start_tpe.date(), (end_tpe - timedelta(days=1)).date())
     result = {
@@ -376,6 +394,7 @@ def run_portfolio_backtest(
     maintenance_margin: float = 0.01,
     liq_penalty: float = 0.0075,
     auto_flatten_buffer: float = 0.0,
+    expected_slippage_gate: float = 0.0,
 ) -> list[Trade]:
     by_ts: dict[datetime, list[SymbolPoint]] = {}
     for points in series.values():
@@ -505,7 +524,9 @@ def run_portfolio_backtest(
         candidates = []
         for point in points:
             abs_basis = abs(point.basis)
-            expected_edge = abs_basis - exit_threshold - maker_fee * 4 - funding_buffer
+            # Pre-trade cost gate: subtract expected execution slippage from the edge so
+            # marginal trades that the basis can't cover after slippage are never opened.
+            expected_edge = abs_basis - exit_threshold - maker_fee * 4 - funding_buffer - expected_slippage_gate
             has_reversion = point.reversion_improvement >= min_reversion_improvement
             if abs_basis >= entry_threshold and expected_edge >= min_edge and has_reversion:
                 candidates.append((expected_edge, point))
