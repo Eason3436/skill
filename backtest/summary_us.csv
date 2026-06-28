@@ -1,0 +1,71 @@
+Asset,Strategy,AvgMo%,CAGR%,Sharpe,MaxDD%,WorstMo%,TotalRet%
+MSFT,Buy&Hold,1.76,20.2,0.78,-37.1,-17.2,294.0
+MSFT,SMA 50/200 (Golden Cross),1.51,18.1,0.84,-28.0,-7.5,246.0
+MSFT,SMA 10/20 (backtesting.py),1.0,10.8,0.62,-34.6,-13.3,115.0
+MSFT,RSI(2) MeanRev (Connors),0.41,4.8,0.42,-15.8,-9.3,42.0
+MSFT,Bollinger MeanRev,1.0,11.9,0.73,-21.6,-10.9,132.0
+MSFT,MACD Crossover,0.04,-0.9,0.05,-44.6,-14.4,-6.0
+MSFT,Donchian Breakout (Turtle),1.01,11.5,0.76,-23.5,-10.2,125.0
+NVDA,Buy&Hold,5.48,72.4,1.33,-66.3,-32.0,5724.0
+NVDA,SMA 50/200 (Golden Cross),4.64,62.7,1.34,-37.6,-21.3,3678.0
+NVDA,SMA 10/20 (backtesting.py),3.69,44.1,1.16,-55.5,-20.4,1432.0
+NVDA,RSI(2) MeanRev (Connors),1.64,20.3,0.87,-24.8,-9.9,297.0
+NVDA,Bollinger MeanRev,1.82,21.5,0.87,-40.0,-25.1,327.0
+NVDA,MACD Crossover,2.81,32.2,0.97,-52.7,-24.0,705.0
+NVDA,Donchian Breakout (Turtle),3.38,42.4,1.28,-29.3,-16.3,1300.0
+TSLA,Buy&Hold,5.0,46.3,0.92,-73.6,-36.7,1611.0
+TSLA,SMA 50/200 (Golden Cross),3.32,29.1,0.75,-65.1,-27.6,571.0
+TSLA,SMA 10/20 (backtesting.py),5.81,73.8,1.42,-35.0,-19.4,6095.0
+TSLA,RSI(2) MeanRev (Connors),0.43,2.1,0.22,-44.4,-21.5,17.0
+TSLA,Bollinger MeanRev,0.19,-0.6,0.15,-52.1,-23.5,-5.0
+TSLA,MACD Crossover,4.59,52.5,1.18,-44.8,-19.6,2233.0
+TSLA,Donchian Breakout (Turtle),4.52,51.4,1.24,-41.8,-33.8,2107.0
+AMZN,Buy&Hold,1.67,16.4,0.62,-56.1,-23.8,210.0
+AMZN,SMA 50/200 (Golden Cross),0.59,4.8,0.31,-42.9,-16.1,42.0
+AMZN,SMA 10/20 (backtesting.py),0.91,8.7,0.47,-33.3,-15.5,87.0
+AMZN,RSI(2) MeanRev (Connors),0.03,-0.1,0.05,-17.6,-10.2,-0.0
+AMZN,Bollinger MeanRev,0.61,6.5,0.43,-35.0,-10.9,60.0
+AMZN,MACD Crossover,0.58,3.4,0.26,-39.5,-19.7,29.0
+AMZN,Donchian Breakout (Turtle),0.91,9.4,0.55,-24.0,-9.7,96.0
+GOOGL,Buy&Hold,2.45,28.5,0.96,-44.3,-17.9,551.0
+GOOGL,SMA 50/200 (Golden Cross),1.96,22.5,0.92,-30.9,-16.5,356.0
+GOOGL,SMA 10/20 (backtesting.py),1.52,17.2,0.8,-38.3,-11.5,227.0
+GOOGL,RSI(2) MeanRev (Connors),0.79,9.4,0.92,-11.4,-8.2,96.0
+GOOGL,Bollinger MeanRev,0.23,2.2,0.21,-28.4,-13.2,18.0
+GOOGL,MACD Crossover,1.27,14.1,0.71,-43.5,-9.4,167.0
+GOOGL,Donchian Breakout (Turtle),1.21,13.8,0.72,-35.7,-10.5,162.0
+META,Buy&Hold,2.25,21.3,0.67,-76.7,-32.6,323.0
+META,SMA 50/200 (Golden Cross),1.82,20.6,0.78,-34.6,-18.6,304.0
+META,SMA 10/20 (backtesting.py),1.51,15.8,0.66,-45.9,-14.3,198.0
+META,RSI(2) MeanRev (Connors),0.54,5.9,0.43,-30.6,-16.4,54.0
+META,Bollinger MeanRev,0.74,8.0,0.46,-26.1,-13.8,78.0
+META,MACD Crossover,0.74,4.1,0.29,-78.8,-32.6,35.0
+META,Donchian Breakout (Turtle),1.06,10.8,0.54,-46.9,-11.3,115.0
+JPM,Buy&Hold,1.86,21.0,0.79,-43.6,-22.5,314.0
+JPM,SMA 50/200 (Golden Cross),1.23,13.7,0.66,-43.6,-21.6,161.0
+JPM,SMA 10/20 (backtesting.py),0.39,2.7,0.24,-51.5,-13.1,22.0
+JPM,RSI(2) MeanRev (Connors),0.12,0.8,0.13,-36.0,-14.4,6.0
+JPM,Bollinger MeanRev,0.57,6.2,0.41,-37.6,-22.5,57.0
+JPM,MACD Crossover,1.03,11.7,0.67,-36.8,-10.8,128.0
+JPM,Donchian Breakout (Turtle),0.97,11.2,0.79,-25.7,-9.4,120.0
+KO,Buy&Hold,1.0,11.1,0.63,-37.0,-16.5,119.0
+KO,SMA 50/200 (Golden Cross),0.34,2.9,0.25,-37.0,-16.5,24.0
+KO,SMA 10/20 (backtesting.py),0.63,7.0,0.58,-19.7,-7.9,66.0
+KO,RSI(2) MeanRev (Connors),0.38,4.3,0.57,-10.3,-7.5,37.0
+KO,Bollinger MeanRev,0.31,3.4,0.34,-29.4,-8.6,29.0
+KO,MACD Crossover,0.42,4.4,0.4,-18.7,-9.0,38.0
+KO,Donchian Breakout (Turtle),-0.13,-2.2,-0.13,-30.1,-7.5,-15.0
+XOM,Buy&Hold,1.54,14.8,0.6,-60.3,-26.2,181.0
+XOM,SMA 50/200 (Golden Cross),1.2,12.5,0.65,-30.4,-12.9,141.0
+XOM,SMA 10/20 (backtesting.py),0.91,9.6,0.52,-29.8,-15.3,99.0
+XOM,RSI(2) MeanRev (Connors),0.3,3.3,0.36,-12.9,-8.8,27.0
+XOM,Bollinger MeanRev,0.15,0.3,0.1,-57.7,-26.2,2.0
+XOM,MACD Crossover,0.99,9.8,0.53,-28.9,-11.5,101.0
+XOM,Donchian Breakout (Turtle),0.33,2.4,0.22,-34.8,-11.2,20.0
+JNJ,Buy&Hold,1.12,12.6,0.71,-27.4,-9.1,143.0
+JNJ,SMA 50/200 (Golden Cross),0.29,2.3,0.22,-47.3,-9.1,18.0
+JNJ,SMA 10/20 (backtesting.py),0.67,7.6,0.65,-18.6,-6.4,72.0
+JNJ,RSI(2) MeanRev (Connors),0.23,2.7,0.43,-8.7,-6.6,22.0
+JNJ,Bollinger MeanRev,0.18,1.8,0.21,-24.1,-8.6,14.0
+JNJ,MACD Crossover,0.78,9.0,0.76,-19.9,-6.0,90.0
+JNJ,Donchian Breakout (Turtle),0.55,6.3,0.61,-14.5,-4.5,57.0
