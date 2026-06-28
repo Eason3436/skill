@@ -1,0 +1,29 @@
+標的,策略,開源來源,平均月收益%,年化CAGR%,Sharpe,最大回撤%,獲利月份%,最佳月%,最差月%
+SPY,Buy&Hold,基準(被動持有),1.44,17.2,0.91,-33.7,67,12.7,-12.5
+SPY,SMA 50/200 (Golden Cross),"黃金交叉,backtrader/各大教學 repo 經典",0.9,10.5,0.69,-33.7,54,10.9,-12.5
+SPY,SMA 10/20 (backtesting.py),backtesting.py 官方 README 範例 SmaCross,0.85,9.9,0.84,-20.4,59,9.6,-9.4
+SPY,RSI(2) MeanRev (Connors),"Larry Connors RSI(2),freqtrade/quantsoftware 常見",0.43,5.2,0.75,-8.2,42,4.3,-6.1
+SPY,Bollinger MeanRev,"布林通道均值回歸,各量化教學 repo 經典",0.42,4.8,0.4,-29.5,34,5.2,-12.5
+SPY,MACD Crossover,"MACD 金叉/死叉,TA 教學 repo 經典",0.78,9.1,0.84,-15.6,52,12.7,-11.9
+SPY,Donchian Breakout (Turtle),海龜交易法 Donchian 突破,0.8,9.7,0.98,-8.9,50,7.0,-4.7
+QQQ,Buy&Hold,基準(被動持有),1.93,23.4,1.0,-35.1,66,15.7,-13.6
+QQQ,SMA 50/200 (Golden Cross),"黃金交叉,backtrader/各大教學 repo 經典",1.64,20.0,0.99,-28.6,54,15.7,-8.7
+QQQ,SMA 10/20 (backtesting.py),backtesting.py 官方 README 範例 SmaCross,1.27,14.9,0.95,-32.0,57,19.3,-11.5
+QQQ,RSI(2) MeanRev (Connors),"Larry Connors RSI(2),freqtrade/quantsoftware 常見",0.49,5.8,0.68,-11.1,41,6.5,-7.1
+QQQ,Bollinger MeanRev,"布林通道均值回歸,各量化教學 repo 經典",0.24,2.6,0.24,-22.4,30,7.1,-10.5
+QQQ,MACD Crossover,"MACD 金叉/死叉,TA 教學 repo 經典",0.94,10.8,0.79,-25.3,52,15.0,-15.1
+QQQ,Donchian Breakout (Turtle),海龜交易法 Donchian 突破,1.07,12.8,0.99,-20.0,52,10.6,-8.5
+AAPL,Buy&Hold,基準(被動持有),2.58,31.2,1.04,-33.4,61,21.7,-12.4
+AAPL,SMA 50/200 (Golden Cross),"黃金交叉,backtrader/各大教學 repo 經典",1.48,15.8,0.69,-31.4,48,21.7,-18.3
+AAPL,SMA 10/20 (backtesting.py),backtesting.py 官方 README 範例 SmaCross,1.66,18.5,0.9,-33.4,54,21.7,-18.2
+AAPL,RSI(2) MeanRev (Connors),"Larry Connors RSI(2),freqtrade/quantsoftware 常見",0.48,5.5,0.43,-21.4,42,8.3,-8.4
+AAPL,Bollinger MeanRev,"布林通道均值回歸,各量化教學 repo 經典",0.43,4.6,0.33,-25.9,29,9.2,-12.1
+AAPL,MACD Crossover,"MACD 金叉/死叉,TA 教學 repo 經典",1.99,24.2,1.23,-21.3,52,21.6,-14.9
+AAPL,Donchian Breakout (Turtle),海龜交易法 Donchian 突破,1.68,20.1,1.13,-22.6,57,21.6,-12.6
+BTC-USD,Buy&Hold,基準(被動持有),4.78,29.1,0.76,-76.6,54,60.2,-37.8
+BTC-USD,SMA 50/200 (Golden Cross),"黃金交叉,backtrader/各大教學 repo 經典",3.35,20.6,0.67,-63.4,33,60.2,-35.4
+BTC-USD,SMA 10/20 (backtesting.py),backtesting.py 官方 README 範例 SmaCross,3.35,21.1,0.71,-75.2,48,60.2,-22.6
+BTC-USD,RSI(2) MeanRev (Connors),"Larry Connors RSI(2),freqtrade/quantsoftware 常見",0.67,4.5,0.32,-37.5,36,25.2,-20.1
+BTC-USD,Bollinger MeanRev,"布林通道均值回歸,各量化教學 repo 經典",0.4,0.6,0.18,-55.0,33,19.1,-26.1
+BTC-USD,MACD Crossover,"MACD 金叉/死叉,TA 教學 repo 經典",3.56,26.1,0.85,-50.0,48,36.8,-22.6
+BTC-USD,Donchian Breakout (Turtle),海龜交易法 Donchian 突破,3.62,26.8,0.89,-59.3,44,60.2,-21.3
