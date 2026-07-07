@@ -1,0 +1,296 @@
+{
+  "instrument": "TSM-USDT-SWAP",
+  "exchange": "OKX",
+  "base_data": "1H candles resampled to each timeframe",
+  "band": "Bollinger: SMA(20) +/- k*stddev(20, population)",
+  "rules": "long-only; enter at close <= lower band; exit at close >= upper band; NO stop loss",
+  "sizing": "100% equity per trade, 1x, no fees",
+  "period": {
+    "from": "2026-03-11 10:00:00+00:00",
+    "to": "2026-07-07 15:00:00+00:00"
+  },
+  "configs": [
+    {
+      "timeframe": "2H",
+      "band_k": 2.5,
+      "bars": 1419,
+      "n_trades": 9,
+      "win_rate": 0.8889,
+      "total_return_pct": 22.15,
+      "max_drawdown_pct": -8.14,
+      "open_at_end": false,
+      "trades": [
+        {
+          "entry": 327.68,
+          "exit": 340.15,
+          "ret_pct": 3.81
+        },
+        {
+          "entry": 340.71,
+          "exit": 338.1,
+          "ret_pct": -0.77
+        },
+        {
+          "entry": 364.13,
+          "exit": 378.36,
+          "ret_pct": 3.91
+        },
+        {
+          "entry": 365.4,
+          "exit": 378.44,
+          "ret_pct": 3.57
+        },
+        {
+          "entry": 408.36,
+          "exit": 411.38,
+          "ret_pct": 0.74
+        },
+        {
+          "entry": 415.62,
+          "exit": 421.62,
+          "ret_pct": 1.44
+        },
+        {
+          "entry": 430.48,
+          "exit": 449.0,
+          "ret_pct": 4.3
+        },
+        {
+          "entry": 458.93,
+          "exit": 469.52,
+          "ret_pct": 2.31
+        },
+        {
+          "entry": 450.04,
+          "exit": 454.72,
+          "ret_pct": 1.04
+        }
+      ]
+    },
+    {
+      "timeframe": "3H",
+      "band_k": 2.0,
+      "bars": 947,
+      "n_trades": 13,
+      "win_rate": 0.7692,
+      "total_return_pct": 32.56,
+      "max_drawdown_pct": -7.34,
+      "open_at_end": true,
+      "trades": [
+        {
+          "entry": 327.68,
+          "exit": 341.67,
+          "ret_pct": 4.27
+        },
+        {
+          "entry": 334.38,
+          "exit": 328.92,
+          "ret_pct": -1.63
+        },
+        {
+          "entry": 319.02,
+          "exit": 337.37,
+          "ret_pct": 5.75
+        },
+        {
+          "entry": 365.25,
+          "exit": 376.66,
+          "ret_pct": 3.12
+        },
+        {
+          "entry": 371.52,
+          "exit": 369.15,
+          "ret_pct": -0.64
+        },
+        {
+          "entry": 398.69,
+          "exit": 400.76,
+          "ret_pct": 0.52
+        },
+        {
+          "entry": 396.33,
+          "exit": 416.0,
+          "ret_pct": 4.96
+        },
+        {
+          "entry": 408.35,
+          "exit": 418.35,
+          "ret_pct": 2.45
+        },
+        {
+          "entry": 395.29,
+          "exit": 410.87,
+          "ret_pct": 3.94
+        },
+        {
+          "entry": 422.48,
+          "exit": 423.92,
+          "ret_pct": 0.34
+        },
+        {
+          "entry": 412.6,
+          "exit": 429.76,
+          "ret_pct": 4.16
+        },
+        {
+          "entry": 450.04,
+          "exit": 440.04,
+          "ret_pct": -2.22
+        },
+        {
+          "entry": 440.55,
+          "exit": 456.95,
+          "ret_pct": 3.72
+        }
+      ]
+    },
+    {
+      "timeframe": "4H",
+      "band_k": 2.0,
+      "bars": 710,
+      "n_trades": 10,
+      "win_rate": 0.9,
+      "total_return_pct": 30.19,
+      "max_drawdown_pct": -6.78,
+      "open_at_end": true,
+      "trades": [
+        {
+          "entry": 324.52,
+          "exit": 339.08,
+          "ret_pct": 4.49
+        },
+        {
+          "entry": 326.71,
+          "exit": 338.1,
+          "ret_pct": 3.49
+        },
+        {
+          "entry": 362.58,
+          "exit": 378.36,
+          "ret_pct": 4.35
+        },
+        {
+          "entry": 363.66,
+          "exit": 370.63,
+          "ret_pct": 1.92
+        },
+        {
+          "entry": 398.39,
+          "exit": 403.2,
+          "ret_pct": 1.21
+        },
+        {
+          "entry": 395.08,
+          "exit": 415.69,
+          "ret_pct": 5.22
+        },
+        {
+          "entry": 407.48,
+          "exit": 418.44,
+          "ret_pct": 2.69
+        },
+        {
+          "entry": 395.87,
+          "exit": 407.78,
+          "ret_pct": 3.01
+        },
+        {
+          "entry": 425.9,
+          "exit": 437.25,
+          "ret_pct": 2.66
+        },
+        {
+          "entry": 447.77,
+          "exit": 438.35,
+          "ret_pct": -2.1
+        }
+      ]
+    },
+    {
+      "timeframe": "6H",
+      "band_k": 2.0,
+      "bars": 474,
+      "n_trades": 5,
+      "win_rate": 1.0,
+      "total_return_pct": 27.64,
+      "max_drawdown_pct": -6.78,
+      "open_at_end": true,
+      "trades": [
+        {
+          "entry": 330.34,
+          "exit": 347.12,
+          "ret_pct": 5.08
+        },
+        {
+          "entry": 312.96,
+          "exit": 340.4,
+          "ret_pct": 8.77
+        },
+        {
+          "entry": 405.29,
+          "exit": 418.36,
+          "ret_pct": 3.22
+        },
+        {
+          "entry": 411.45,
+          "exit": 438.04,
+          "ret_pct": 6.46
+        },
+        {
+          "entry": 447.62,
+          "exit": 454.89,
+          "ret_pct": 1.62
+        }
+      ]
+    },
+    {
+      "timeframe": "8H",
+      "band_k": 2.0,
+      "bars": 355,
+      "n_trades": 3,
+      "win_rate": 1.0,
+      "total_return_pct": 21.66,
+      "max_drawdown_pct": -9.86,
+      "open_at_end": false,
+      "trades": [
+        {
+          "entry": 320.89,
+          "exit": 348.64,
+          "ret_pct": 8.65
+        },
+        {
+          "entry": 389.07,
+          "exit": 408.86,
+          "ret_pct": 5.09
+        },
+        {
+          "entry": 411.45,
+          "exit": 438.41,
+          "ret_pct": 6.55
+        }
+      ]
+    },
+    {
+      "timeframe": "12H",
+      "band_k": 2.0,
+      "bars": 238,
+      "n_trades": 2,
+      "win_rate": 1.0,
+      "total_return_pct": 32.37,
+      "max_drawdown_pct": -5.28,
+      "open_at_end": false,
+      "trades": [
+        {
+          "entry": 312.96,
+          "exit": 360.2,
+          "ret_pct": 15.09
+        },
+        {
+          "entry": 402.54,
+          "exit": 462.96,
+          "ret_pct": 15.01
+        }
+      ]
+    }
+  ]
+}
