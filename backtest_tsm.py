@@ -150,6 +150,72 @@ def bollinger(closes, period, k):
     return mid, up, lo
 
 
+# ---- backtest engine (no tranches: all-in on lower, all-out on upper) ------
+def backtest_simple(candles, k):
+    """Buy full budget on a fresh lower-band touch, sell everything on a fresh
+    upper-band touch. No position splitting, no stop loss."""
+    closes = [c[4] for c in candles]
+    mid, up, lo = bollinger(closes, BB_PERIOD, k)
+
+    cash = INITIAL_CAPITAL
+    coin = 0.0
+    below_state = False
+    above_state = False
+    trades = 0
+    equity_curve = []
+    peak = -1e18
+    max_dd = 0.0
+
+    for i in range(BB_PERIOD, len(candles)):
+        ts, o, high, low, close = candles[i]
+        upper, lower = up[i - 1], lo[i - 1]
+        if upper is None or lower is None:
+            continue
+
+        touch_low = low <= lower
+        if touch_low and not below_state:
+            below_state = True
+            if cash > 1e-6:                       # all-in
+                fill = max(low, min(lower, high))
+                coin += (cash / fill) * (1 - FEE_RATE)
+                cash = 0.0
+                trades += 1
+        elif not touch_low:
+            below_state = False
+
+        touch_high = high >= upper
+        if touch_high and not above_state:
+            above_state = True
+            if coin > 1e-12:                      # all-out
+                fill = min(high, max(upper, low))
+                cash += coin * fill * (1 - FEE_RATE)
+                coin = 0.0
+                trades += 1
+        elif not touch_high:
+            above_state = False
+
+        equity = cash + coin * close
+        equity_curve.append((ts, equity))
+        if equity > peak:
+            peak = equity
+        dd = (peak - equity) / peak
+        if dd > max_dd:
+            max_dd = dd
+
+    final_equity = cash + coin * closes[-1]
+    start_px = closes[BB_PERIOD]
+    return {
+        "candles": len(candles),
+        "bars_traded": len(equity_curve),
+        "trades": trades,
+        "final_equity": final_equity,
+        "total_return": final_equity / INITIAL_CAPITAL - 1.0,
+        "max_drawdown": max_dd,
+        "buy_hold_return": closes[-1] / start_px - 1.0,
+        "end_coin_value": coin * closes[-1],
+    }
+
+
 # ---- backtest engine -------------------------------------------------------
 def backtest(candles, k):
     closes = [c[4] for c in candles]
@@ -235,30 +301,37 @@ def backtest(candles, k):
     }
 
 
-def main():
-    cache_1h = [None]
-    print(f"Instrument: {INST}   |  Bollinger period: {BB_PERIOD}   "
-          f"|  Capital: {INITIAL_CAPITAL:,.0f} USDT  |  Fee/side: {FEE_RATE*100:.3f}%")
+def _print_table(title, engine, cache_1h):
+    print(title)
     print("=" * 96)
-    header = (f"{'TF':>4} {'±std':>5} {'candles':>8} {'trades':>7} "
-             f"{'Return %':>10} {'MaxDD %':>9} {'FinalEq':>11} {'Buy&Hold %':>11}")
-    print(header)
+    print(f"{'TF':>4} {'±std':>5} {'candles':>8} {'trades':>7} "
+          f"{'Return %':>10} {'MaxDD %':>9} {'FinalEq':>11} {'Buy&Hold %':>11}")
     print("-" * 96)
-
     results = {}
     for tf, k in TIMEFRAMES.items():
         candles = get_timeframe_data(tf, cache_1h)
-        res = backtest(candles, k)
+        res = engine(candles, k)
         results[tf] = res
         print(f"{tf:>4} {k:>5.1f} {res['candles']:>8} {res['trades']:>7} "
               f"{res['total_return']*100:>10.2f} {res['max_drawdown']*100:>9.2f} "
               f"{res['final_equity']:>11,.0f} {res['buy_hold_return']*100:>11.2f}")
-
     print("=" * 96)
-    print("Notes: long-only mean reversion, no stop loss. A 'touch' is a new "
+    return results
+
+
+def main():
+    cache_1h = [None]
+    print(f"Instrument: {INST}   |  Bollinger period: {BB_PERIOD}   "
+          f"|  Capital: {INITIAL_CAPITAL:,.0f} USDT  |  Fee/side: {FEE_RATE*100:.3f}%\n")
+    r3 = _print_table("[A] 3-tranche: buy 1/3 on each lower touch (max 3), "
+                      "sell 2/3 on each upper touch", backtest, cache_1h)
+    print()
+    r1 = _print_table("[B] No tranches: all-in on lower touch, all-out on "
+                      "upper touch", backtest_simple, cache_1h)
+    print("\nNotes: long-only mean reversion, no stop loss. A 'touch' is a new "
           "wick tag of the band\n(re-armed after price closes back inside). "
           "Fills modelled at the band price. 3H/8H resampled from 1H.")
-    return results
+    return r3, r1
 
 
 if __name__ == "__main__":
