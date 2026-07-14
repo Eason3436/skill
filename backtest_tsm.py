@@ -216,6 +216,104 @@ def backtest_simple(candles, k):
     }
 
 
+# ---- leveraged engine (no tranches, all-in/all-out, with liquidation) ------
+MAINT_MARGIN_RATE = 0.005     # ~0.5% maintenance margin (OKX-ish)
+
+def backtest_leverage(candles, k, leverage):
+    """All-in on lower touch / all-out on upper touch, using `leverage`x on a
+    perpetual long. No stop loss -> the account can be LIQUIDATED. A long is
+    liquidated when marked equity falls to the maintenance margin, i.e. roughly
+    a (1/leverage - mmr) adverse move (~19.5% for 5x)."""
+    closes = [c[4] for c in candles]
+    mid, up, lo = bollinger(closes, BB_PERIOD, k)
+
+    equity = INITIAL_CAPITAL
+    in_pos = False
+    qty = entry = margin = 0.0
+    below_state = above_state = False
+    trades = 0
+    liquidations = 0
+    worst_mae = 0.0               # largest adverse move from entry while in a trade (% of entry)
+    equity_curve = []
+    peak = -1e18
+    max_dd = 0.0
+
+    for i in range(BB_PERIOD, len(candles)):
+        ts, o, high, low, close = candles[i]
+        upper, lower = up[i - 1], lo[i - 1]
+        if upper is None or lower is None:
+            continue
+
+        # --- liquidation check first, on this candle's low (worst for a long) ---
+        if in_pos:
+            mae = (entry - low) / entry
+            if mae > worst_mae:
+                worst_mae = mae
+            maint = MAINT_MARGIN_RATE * qty * entry
+            marked_low = margin + qty * (low - entry)
+            if marked_low <= maint:
+                equity = max(maint, 0.0)      # margin wiped, small residual
+                in_pos = False
+                qty = 0.0
+                liquidations += 1
+                trades += 1
+
+        # --- lower band: open leveraged long if flat ---
+        touch_low = low <= lower
+        if touch_low and not below_state:
+            below_state = True
+            if not in_pos and equity > 1e-6:
+                fill = max(low, min(lower, high))
+                notional = leverage * equity
+                qty = notional / fill
+                entry = fill
+                margin = equity - notional * FEE_RATE   # entry fee
+                equity = margin
+                in_pos = True
+                trades += 1
+        elif not touch_low:
+            below_state = False
+
+        # --- upper band: close everything ---
+        touch_high = high >= upper
+        if touch_high and not above_state:
+            above_state = True
+            if in_pos:
+                fill = min(high, max(upper, low))
+                pnl = qty * (fill - entry)
+                exit_fee = qty * fill * FEE_RATE
+                equity = margin + pnl - exit_fee
+                in_pos = False
+                qty = 0.0
+                trades += 1
+        elif not touch_high:
+            above_state = False
+
+        # --- mark-to-market equity & drawdown ---
+        cur_equity = (margin + qty * (close - entry)) if in_pos else equity
+        cur_equity = max(cur_equity, 0.0)
+        equity_curve.append((ts, cur_equity))
+        if cur_equity > peak:
+            peak = cur_equity
+        dd = (peak - cur_equity) / peak if peak > 0 else 0.0
+        if dd > max_dd:
+            max_dd = dd
+
+    final_equity = (margin + qty * (closes[-1] - entry)) if in_pos else equity
+    final_equity = max(final_equity, 0.0)
+    start_px = closes[BB_PERIOD]
+    return {
+        "candles": len(candles),
+        "trades": trades,
+        "liquidations": liquidations,
+        "worst_mae": worst_mae,
+        "final_equity": final_equity,
+        "total_return": final_equity / INITIAL_CAPITAL - 1.0,
+        "max_drawdown": max_dd,
+        "buy_hold_return": closes[-1] / start_px - 1.0,
+    }
+
+
 # ---- backtest engine -------------------------------------------------------
 def backtest(candles, k):
     closes = [c[4] for c in candles]
