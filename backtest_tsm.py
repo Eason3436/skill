@@ -151,9 +151,13 @@ def bollinger(closes, period, k):
 
 
 # ---- backtest engine (no tranches: all-in on lower, all-out on upper) ------
-def backtest_simple(candles, k):
+def backtest_simple(candles, k, min_pullback=0.0):
     """Buy full budget on a fresh lower-band touch, sell everything on a fresh
-    upper-band touch. No position splitting, no stop loss."""
+    upper-band touch. No position splitting, no stop loss.
+
+    min_pullback: only allow a buy when the entry price is at least this fraction
+    below the prior swing high (running peak of highs before the current bar).
+    e.g. 0.07 => must be >= 7% under the prior high."""
     closes = [c[4] for c in candles]
     mid, up, lo = bollinger(closes, BB_PERIOD, k)
 
@@ -162,14 +166,18 @@ def backtest_simple(candles, k):
     below_state = False
     above_state = False
     trades = 0
+    blocked_buys = 0
     equity_curve = []
     peak = -1e18
     max_dd = 0.0
+    running_peak = max(c[2] for c in candles[:BB_PERIOD])   # prior high, warmup seed
 
     for i in range(BB_PERIOD, len(candles)):
         ts, o, high, low, close = candles[i]
         upper, lower = up[i - 1], lo[i - 1]
         if upper is None or lower is None:
+            if high > running_peak:
+                running_peak = high
             continue
 
         touch_low = low <= lower
@@ -177,9 +185,12 @@ def backtest_simple(candles, k):
             below_state = True
             if cash > 1e-6:                       # all-in
                 fill = max(low, min(lower, high))
-                coin += (cash / fill) * (1 - FEE_RATE)
-                cash = 0.0
-                trades += 1
+                if fill <= running_peak * (1 - min_pullback):   # >= X% off prior high
+                    coin += (cash / fill) * (1 - FEE_RATE)
+                    cash = 0.0
+                    trades += 1
+                else:
+                    blocked_buys += 1
         elif not touch_low:
             below_state = False
 
@@ -201,6 +212,8 @@ def backtest_simple(candles, k):
         dd = (peak - equity) / peak
         if dd > max_dd:
             max_dd = dd
+        if high > running_peak:                   # update prior-high for next bar
+            running_peak = high
 
     final_equity = cash + coin * closes[-1]
     start_px = closes[BB_PERIOD]
@@ -208,6 +221,7 @@ def backtest_simple(candles, k):
         "candles": len(candles),
         "bars_traded": len(equity_curve),
         "trades": trades,
+        "blocked_buys": blocked_buys,
         "final_equity": final_equity,
         "total_return": final_equity / INITIAL_CAPITAL - 1.0,
         "max_drawdown": max_dd,
@@ -219,11 +233,14 @@ def backtest_simple(candles, k):
 # ---- leveraged engine (no tranches, all-in/all-out, with liquidation) ------
 MAINT_MARGIN_RATE = 0.005     # ~0.5% maintenance margin (OKX-ish)
 
-def backtest_leverage(candles, k, leverage):
+def backtest_leverage(candles, k, leverage, min_pullback=0.0):
     """All-in on lower touch / all-out on upper touch, using `leverage`x on a
     perpetual long. No stop loss -> the account can be LIQUIDATED. A long is
     liquidated when marked equity falls to the maintenance margin, i.e. roughly
-    a (1/leverage - mmr) adverse move (~19.5% for 5x)."""
+    a (1/leverage - mmr) adverse move (~19.5% for 5x).
+
+    min_pullback: only open when the entry price is at least this fraction below
+    the prior swing high (running peak of highs before the current bar)."""
     closes = [c[4] for c in candles]
     mid, up, lo = bollinger(closes, BB_PERIOD, k)
 
@@ -233,15 +250,19 @@ def backtest_leverage(candles, k, leverage):
     below_state = above_state = False
     trades = 0
     liquidations = 0
+    blocked_buys = 0
     worst_mae = 0.0               # largest adverse move from entry while in a trade (% of entry)
     equity_curve = []
     peak = -1e18
     max_dd = 0.0
+    running_peak = max(c[2] for c in candles[:BB_PERIOD])   # prior high, warmup seed
 
     for i in range(BB_PERIOD, len(candles)):
         ts, o, high, low, close = candles[i]
         upper, lower = up[i - 1], lo[i - 1]
         if upper is None or lower is None:
+            if high > running_peak:
+                running_peak = high
             continue
 
         # --- liquidation check first, on this candle's low (worst for a long) ---
@@ -264,13 +285,16 @@ def backtest_leverage(candles, k, leverage):
             below_state = True
             if not in_pos and equity > 1e-6:
                 fill = max(low, min(lower, high))
-                notional = leverage * equity
-                qty = notional / fill
-                entry = fill
-                margin = equity - notional * FEE_RATE   # entry fee
-                equity = margin
-                in_pos = True
-                trades += 1
+                if fill <= running_peak * (1 - min_pullback):   # >= X% off prior high
+                    notional = leverage * equity
+                    qty = notional / fill
+                    entry = fill
+                    margin = equity - notional * FEE_RATE   # entry fee
+                    equity = margin
+                    in_pos = True
+                    trades += 1
+                else:
+                    blocked_buys += 1
         elif not touch_low:
             below_state = False
 
@@ -298,6 +322,8 @@ def backtest_leverage(candles, k, leverage):
         dd = (peak - cur_equity) / peak if peak > 0 else 0.0
         if dd > max_dd:
             max_dd = dd
+        if high > running_peak:                   # update prior-high for next bar
+            running_peak = high
 
     final_equity = (margin + qty * (closes[-1] - entry)) if in_pos else equity
     final_equity = max(final_equity, 0.0)
@@ -306,6 +332,7 @@ def backtest_leverage(candles, k, leverage):
         "candles": len(candles),
         "trades": trades,
         "liquidations": liquidations,
+        "blocked_buys": blocked_buys,
         "worst_mae": worst_mae,
         "final_equity": final_equity,
         "total_return": final_equity / INITIAL_CAPITAL - 1.0,
