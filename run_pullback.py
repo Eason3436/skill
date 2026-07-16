@@ -7,7 +7,7 @@ Compares no-tranche all-in/all-out with the filter OFF vs ON, at 1x and 5x."""
 
 import backtest_tsm as bt
 
-TFS = {"8h": 2.0, "12h": 2.0}
+TFS = {"1h": 2.5, "2h": 2.5, "8h": 2.0, "12h": 2.0}   # ±std per timeframe
 PULLBACK = 0.07
 
 cache_1h = [None]
