@@ -1,0 +1,91 @@
+{
+  "params": {
+    "weeks": 8,
+    "bar": "30m",
+    "ma_period": 20,
+    "num_std": 2.0,
+    "fee_rate": 0.001,
+    "symbols": {
+      "TSM": "XTSM-USDT",
+      "QQQ": "XQQQ-USDT",
+      "MSFT": "XMSFT-USDT",
+      "AAPL": "XAAPL-USDT"
+    }
+  },
+  "generated_utc": "2026-07-17T04:35:38.700589+00:00",
+  "symbols": [
+    {
+      "label": "TSM",
+      "inst_id": "XTSM-USDT",
+      "candles": 41,
+      "closed_trades": 0,
+      "win_rate": null,
+      "total_return": -0.006442658676109936,
+      "max_drawdown": 0.006442658676109936,
+      "open_position": true,
+      "trades": [
+        {
+          "entry": "2026-07-16 23:30 ET",
+          "entry_px": 403.81,
+          "exit": null,
+          "exit_px": null,
+          "return": null
+        }
+      ]
+    },
+    {
+      "label": "QQQ",
+      "inst_id": "XQQQ-USDT",
+      "candles": 46,
+      "closed_trades": 0,
+      "win_rate": null,
+      "total_return": -0.006659450897571251,
+      "max_drawdown": 0.007294174632798073,
+      "open_position": true,
+      "trades": [
+        {
+          "entry": "2026-07-16 21:30 ET",
+          "entry_px": 700.78,
+          "exit": null,
+          "exit_px": null,
+          "return": null
+        }
+      ]
+    },
+    {
+      "label": "MSFT",
+      "inst_id": "XMSFT-USDT",
+      "candles": 44,
+      "closed_trades": 0,
+      "win_rate": null,
+      "total_return": -0.0034650518682646236,
+      "max_drawdown": 0.003917816497129634,
+      "open_position": true,
+      "trades": [
+        {
+          "entry": "2026-07-16 22:00 ET",
+          "entry_px": 397.16,
+          "exit": null,
+          "exit_px": null,
+          "return": null
+        }
+      ]
+    },
+    {
+      "label": "AAPL",
+      "inst_id": "XAAPL-USDT",
+      "candles": 44,
+      "closed_trades": 0,
+      "win_rate": null,
+      "total_return": 0.0,
+      "max_drawdown": 0.0,
+      "open_position": false,
+      "trades": []
+    }
+  ],
+  "portfolio": {
+    "total_return": -0.0041417903604864525,
+    "max_drawdown": 0.0041417903604864525,
+    "final_equity": 0.9958582096395135
+  }
+}
