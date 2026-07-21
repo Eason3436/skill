@@ -1,0 +1,58 @@
+{
+  "8H|1.5": {
+    "cycles": 562,
+    "r30": 562,
+    "r60": 488,
+    "r100": 388,
+    "final30": 74,
+    "final60": 100,
+    "final100": 388,
+    "open": 105,
+    "pnl_sum": 804.7998981676658,
+    "wins": 361,
+    "resolved": 457,
+    "tokens_with_data": 124
+  },
+  "8H|2.0": {
+    "cycles": 537,
+    "r30": 537,
+    "r60": 477,
+    "r100": 389,
+    "final30": 60,
+    "final60": 88,
+    "final100": 389,
+    "open": 105,
+    "pnl_sum": 845.0903249313295,
+    "wins": 336,
+    "resolved": 432,
+    "tokens_with_data": 124
+  },
+  "12H|1.5": {
+    "cycles": 384,
+    "r30": 384,
+    "r60": 335,
+    "r100": 245,
+    "final30": 49,
+    "final60": 90,
+    "final100": 245,
+    "open": 98,
+    "pnl_sum": 1530.7746925291558,
+    "wins": 245,
+    "resolved": 286,
+    "tokens_with_data": 119
+  },
+  "12H|2.0": {
+    "cycles": 363,
+    "r30": 363,
+    "r60": 322,
+    "r100": 245,
+    "final30": 41,
+    "final60": 77,
+    "final100": 245,
+    "open": 99,
+    "pnl_sum": 1543.5961229510233,
+    "wins": 226,
+    "resolved": 264,
+    "tokens_with_data": 119
+  }
+}
