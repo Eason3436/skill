@@ -8,6 +8,8 @@ HERE = os.path.dirname(__file__)
 
 with open(os.path.join(HERE, "results.json")) as f:
     R = json.load(f)
+with open(os.path.join(HERE, "returns.json")) as f:
+    RET = json.load(f)
 with open(os.path.join(HERE, "per_token.csv")) as f:
     ROWS = list(csv.DictReader(f))
 
@@ -81,6 +83,45 @@ def scenario_card(tf, var, key):
 
 
 cards = "\n".join(scenario_card(*s) for s in SCEN)
+
+
+def ret_rows():
+    out = []
+    for tf, var, key in SCEN:
+        d = RET[key]
+        sign = "pos" if d["honest_full"] >= 0 else "neg"
+        out.append(
+            f"<tr><td class='sym'>{tf} · +{var}σ</td>"
+            f"<td class='num'>{d['resolved']}</td>"
+            f"<td class='num'>{d['win_rate']:.0f}%</td>"
+            f"<td class='num pos'>{d['avg_win']:+.1f}%</td>"
+            f"<td class='num neg'>{d['avg_loss']:+.1f}%</td>"
+            f"<td class='num pos'>{d['avg_roi']:+.2f}%</td>"
+            f"<td class='num neg'>{d['worst']:+.0f}%</td>"
+            f"<td class='num'>{d['open_n']}</td>"
+            f"<td class='num neg'>{d['open_avg']:+.1f}%</td>"
+            f"<td class='num {sign}'><b>{d['honest_full']:+.2f}%</b></td></tr>"
+        )
+    return "\n".join(out)
+
+
+# depth breakdown for the headline scenario (12H +2σ)
+DKEY = "12H|2.0"
+dd = RET[DKEY]["depth"]
+depth_bars = ""
+maxroi = max(dd[k][1] for k in ("1", "2", "3"))
+for k, lab in [("1", "止步 30%"), ("2", "止步 60%"), ("3", "滿倉 100%")]:
+    cnt, roi, wr = dd[k]
+    w = 100 * roi / maxroi if maxroi else 0
+    depth_bars += (
+        f"<div class='frow'><span class='flab'>{lab}</span>"
+        f"<div class='ftrack'><div class='fbar t{k}' style='width:{w:.1f}%'></div></div>"
+        f"<span class='fval'>{roi:+.2f}%<i>勝{wr:.0f}%</i></span></div>"
+    )
+
+ret_table = ret_rows()
+h8 = RET["8H|1.5"]
+h12 = RET["12H|2.0"]
 
 # per-token table, 8H rows, sorted by cycles desc
 t8 = [r for r in ROWS if r["tf"] == "8H"]
@@ -166,6 +207,13 @@ h2{{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut
 .cfoot div{{display:flex;flex-direction:column}}
 .cfoot span{{font-size:11px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em}}
 .cfoot b{{font-family:var(--mono);font-size:17px;margin-top:2px}}
+.twocol{{display:grid;grid-template-columns:1fr 1fr;gap:16px}}
+@media(max-width:720px){{.twocol{{grid-template-columns:1fr}}}}
+.bigstat{{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:6px}}
+.bslab{{font-size:12px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}}
+.bsval{{font-family:var(--mono);font-size:clamp(24px,4vw,34px);font-weight:700;letter-spacing:-.01em}}
+.bsval.pos{{color:var(--good)}} .bsval.neg{{color:var(--bad)}}
+.bssub{{font-size:12.5px;color:var(--muted)}}
 table{{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px}}
 .tscroll{{overflow-x:auto;border:1px solid var(--line);border-radius:12px}}
 thead th{{position:sticky;top:0;background:var(--surface);text-align:right;padding:11px 14px;font-size:11px;
@@ -208,6 +256,38 @@ strong.hl{{color:var(--accent);font-weight:600}}
       {cards}
     </div>
     <p class="ckick" style="margin-top:14px">* 未平倉 = 資料末端價格仍在低檔、尚未觸及出場上軌的週期；其建倉次數仍計入，但不計入勝率／損益。</p>
+  </section>
+
+  <section>
+    <h2>收益 · 已實現 vs 誠實（含套牢）</h2>
+    <div class="twocol">
+      <div class="bigstat">
+        <span class="bslab">已平倉看起來</span>
+        <span class="bsval pos">+2.5%~+4.8%</span>
+        <span class="bssub">每週期 ROI(投入資金) · 勝率 79%~86%</span>
+      </div>
+      <div class="bigstat">
+        <span class="bslab">但把套牢部位一起計入後</span>
+        <span class="bsval neg">≈ 打平 / 微虧</span>
+        <span class="bssub">誠實平均 −1.1%~+0.2% / 週期(滿倉本金)</span>
+      </div>
+    </div>
+    <p class="ckick" style="margin-top:16px">典型的均值回歸/馬丁格爾陷阱：<strong>贏多次、輸致命</strong>。單筆最差 −92%，且愈被拖到滿倉、報酬愈薄——利潤其實來自淺跌快彈的 30%/60% 週期。</p>
+    <div class="tscroll">
+    <table>
+      <thead><tr><th>情境</th><th>已平倉</th><th>勝率</th><th>均獲利</th><th>均虧損</th><th>均ROI</th><th>最差單筆</th><th>套牢數</th><th>套牢均值</th><th>誠實均值*</th></tr></thead>
+      <tbody>
+      {ret_table}
+      </tbody>
+    </table>
+    </div>
+    <p class="ckick" style="margin-top:10px">* 誠實均值 = 已平倉損益 + 未平倉部位以最後收盤價 mark-to-market，換算到「每次都預留滿倉本金」基準的每週期報酬。未扣手續費／資金費率。</p>
+
+    <div class="cdivider" style="margin:22px 0"></div>
+    <p class="ckick" style="margin-bottom:12px"><strong>加碼愈深、報酬愈薄</strong>（以 12H · +2σ 為例，已平倉週期 ROI）：</p>
+    <div class="funnel" style="max-width:520px">
+      {depth_bars}
+    </div>
   </section>
 
   <section>
