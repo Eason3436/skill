@@ -49,6 +49,19 @@ LENGTH = int(os.environ.get("BB_LENGTH", "20"))
 W1, W2, W3 = 0.30, 0.30, 0.40
 
 
+def _floats(env, default):
+    v = os.environ.get(env)
+    return [float(x) for x in v.split(",")] if v else list(default)
+
+
+# sigma multipliers (configurable). "Add 0.5 to all" -> ENTRY=2,2.5,3 etc.
+ENTRY_MULTS = _floats("ENTRY", [1.5, 2.0, 2.5])       # 3 entry tranches
+EXIT_FULL = _floats("EXIT_FULL", [1.5, 2.0])          # full-position 60%/40% exits
+PARTIAL_VARIANTS = _floats("PARTIAL", [1.5, 2.0])     # partial-position exit targets tested
+E1, E2, E3 = ENTRY_MULTS
+XF1, XF2 = EXIT_FULL
+
+
 def load_bars(inst_id, bar):
     fp = os.path.join(SCRATCH, f"{inst_id}_{bar}.json")
     if not os.path.exists(fp):
@@ -132,8 +145,8 @@ def simulate(bars, length, partial_exit_mult):
         if m is None:
             continue
         _, o, hi, lo, c = bars[i]
-        L1, L2, L3 = m - 1.5 * s, m - 2.0 * s, m - 2.5 * s
-        U1, U2 = m + 1.5 * s, m + 2.0 * s
+        L1, L2, L3 = m - E1 * s, m - E2 * s, m - E3 * s
+        U1, U2 = m + XF1 * s, m + XF2 * s
 
         if not in_cycle:
             if lo <= L1:
@@ -217,7 +230,7 @@ def main():
     per_token = {}
 
     for bar_label in ["8H", "12H"]:
-        for variant in [1.5, 2.0]:
+        for variant in PARTIAL_VARIANTS:
             results[(bar_label, variant)] = {
                 "cycles": 0, "r30": 0, "r60": 0, "r100": 0,
                 "final30": 0, "final60": 0, "final100": 0,
@@ -234,7 +247,7 @@ def main():
         for bar_label, bars in series.items():
             if len(bars) < LENGTH + 5:
                 continue
-            for variant in [1.5, 2.0]:
+            for variant in PARTIAL_VARIANTS:
                 cycles = simulate(bars, LENGTH, variant)
                 agg = results[(bar_label, variant)]
                 if cycles:
@@ -268,7 +281,7 @@ def main():
     print("=" * 78)
 
     for bar_label in ["8H", "12H"]:
-        for variant in [1.5, 2.0]:
+        for variant in PARTIAL_VARIANTS:
             a = results[(bar_label, variant)]
             n = a["cycles"]
             print(f"\n### Timeframe {bar_label}  |  partial-position exit @ +{variant}σ")
@@ -300,7 +313,7 @@ def main():
     rows_csv = ["token,tf,bars,cycles,reach30,reach60,reach100,final30,final60,final100,open,resolved,wins,pnl"]
     for tok in tokens:
         for bar_label in ["8H", "12H"]:
-            cyc = per_token.get(tok, {}).get((bar_label, 1.5))
+            cyc = per_token.get(tok, {}).get((bar_label, PARTIAL_VARIANTS[0]))
             if not cyc:
                 continue
             nb = len(load_bars(tok, "12H")) if bar_label == "12H" else len(build_8h_from_4h(load_bars(tok, "4H")))

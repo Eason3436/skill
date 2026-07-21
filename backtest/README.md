@@ -32,7 +32,19 @@ python3 backtest.py            # 輸出 results.json + per_token.csv
 python3 build_report.py        # 輸出 report.html
 ```
 
-可用環境變數 `BB_LENGTH`（預設 20）調整布林週期。
+### 可調參數（環境變數）
+
+| 變數 | 預設 | 說明 |
+|---|---|---|
+| `BB_LENGTH` | `20` | 布林通道週期 |
+| `ENTRY` | `1.5,2,2.5` | 三批進場的下軌 σ 倍數 |
+| `EXIT_FULL` | `1.5,2` | 滿倉出場的上軌 σ 倍數（賣 60% / 40%）|
+| `PARTIAL` | `1.5,2` | 部分倉出場目標的上軌 σ 倍數（測試變體）|
+
+例：把所有 σ 範圍加 0.5 →
+```bash
+ENTRY="2,2.5,3" EXIT_FULL="2,2.5" PARTIAL="2,2.5" python3 backtest.py
+```
 
 ## 產出
 

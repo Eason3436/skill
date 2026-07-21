@@ -2,7 +2,8 @@
 """Proper return analysis: ROI on deployed capital, incl. open-position drawdown."""
 import os
 import statistics as st
-from backtest import load_bars, build_8h_from_4h, simulate, LENGTH, SCRATCH
+from backtest import (load_bars, build_8h_from_4h, simulate, LENGTH, SCRATCH,
+                      PARTIAL_VARIANTS)
 
 W = {1: 0.30, 2: 0.60, 3: 1.00}  # deployed fraction of intended full position
 
@@ -25,7 +26,7 @@ def analyze():
     toks = tokens_from_cache()
     print(f"BB length={LENGTH}  |  ROI = (賣出-買入)/買入 on capital actually deployed that cycle\n")
     for tf in ["8H", "12H"]:
-        for var in [1.5, 2.0]:
+        for var in PARTIAL_VARIANTS:
             realized = []          # roi% on deployed capital, resolved cycles
             realized_full = []     # roi% scaled to 100%-reserved capital
             deployed_frac = []
