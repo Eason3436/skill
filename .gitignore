@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+ma_reversion/data/*.csv
+!ma_reversion/data/*.csv.gz
+ma_reversion/results/equity_*.csv
