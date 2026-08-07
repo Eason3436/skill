@@ -27,22 +27,38 @@ from backtest import run_backtest
 from features import add_features, load_candles
 from metrics import summarize
 from strategy import DEFAULT_PARAMS
+from timeframe import BAR_MINUTES
 
 ROOT = Path(__file__).resolve().parents[1]
 
 # Kept deliberately small and on axes that mean different things, so the grid
 # probes the idea rather than curve-fitting decimals.
-# `ma_len` is deliberately NOT in the grid: 96 bars = 8h = exactly one session,
-# a structural choice rather than a fitted one. Letting the optimiser pick the
+# `ma_len` is deliberately NOT in the grid: one session (8h) of bars, a
+# structural choice rather than a fitted one. Letting the optimiser pick the
 # anchor length per fold was actively harmful - the folds that switched to a
 # shorter anchor were the folds that lost.
-GRID = {
+#
+# Unit-free axes are listed directly; the two windows are declared in minutes so
+# the same grid means the same thing on 5m and on 15m candles.
+GRID_UNITLESS = {
     "z_entry": [2.0, 2.5, 3.0],
-    "max_hold_bars": [24, 36],
-    "min_bars_left": [24, 36, 48],
     "stop_sd": [4.0, 6.0],
     "z_stop": [4.5, 6.0],
 }
+GRID_MINUTES = {
+    "max_hold_bars": [120, 180],
+    "min_bars_left": [120, 180, 240],
+}
+
+
+def build_grid(bar: str) -> dict:
+    """Grid for one timeframe, with the minute-denominated axes converted."""
+    m = BAR_MINUTES[bar]
+    grid = dict(GRID_UNITLESS)
+    for key, minutes in GRID_MINUTES.items():
+        bars = sorted({max(2, round(v / m)) for v in minutes})
+        grid[key] = bars
+    return grid
 
 
 # A 60-day training fold only produces ~35 trades, so the sample floor has to
@@ -171,15 +187,19 @@ def main() -> int:
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
+    grid = build_grid(base["bar"])
+    print(f"grid axes ({base['bar']}): " +
+          "  ".join(f"{k}={v}" for k, v in grid.items()))
+
     if args.mode == "grid":
-        tbl = run_grid(df, base, GRID)
+        tbl = run_grid(df, base, grid)
         tbl.to_csv(outdir / "grid.csv", index=False)
-        cols = list(GRID) + ["trades", "total_return_pct", "sharpe", "max_dd_pct",
+        cols = list(grid) + ["trades", "total_return_pct", "sharpe", "max_dd_pct",
                              "win_rate_pct", "profit_factor", "score"]
         print(tbl[cols].head(15).to_string(index=False))
         print(f"\nwrote {outdir / 'grid.csv'}  ({len(tbl)} combos)")
     else:
-        folds, oos = walk_forward(df, base, GRID, args.train_days, args.test_days)
+        folds, oos = walk_forward(df, base, grid, args.train_days, args.test_days)
         folds.to_csv(outdir / "walkforward_folds.csv", index=False)
         if not oos.empty:
             oos.to_csv(outdir / "walkforward_oos_trades.csv", index=False)
