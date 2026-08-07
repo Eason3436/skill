@@ -21,7 +21,7 @@
   "allow_short": true,
   "exit_mode": "sd",
   "tp_sd": 0,
-  "stop_sd": 4.0,
+  "stop_sd": 8.0,
   "z_exit": 0.3,
   "z_stop": 6.0,
   "max_hold_bars": 8,

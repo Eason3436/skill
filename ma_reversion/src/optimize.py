@@ -40,9 +40,13 @@ ROOT = Path(__file__).resolve().parents[1]
 #
 # Unit-free axes are listed directly; the two windows are declared in minutes so
 # the same grid means the same thing on 5m and on 15m candles.
+# `stop_sd` is also absent by design. On the discovery name it barely moves
+# Sharpe (2.23 at 4 sigma, 2.25 at 8) because sizing is derived from it, so the
+# optimiser picks it on return alone and lands on a value that is simply more
+# leveraged. Across 14 unseen names that choice cost 1.45pp of median return.
+# It is fixed at 8 sigma from the cross-sectional evidence instead.
 GRID_UNITLESS = {
     "z_entry": [2.0, 2.5, 3.0],
-    "stop_sd": [4.0, 6.0],
     "z_stop": [4.5, 6.0],
 }
 GRID_MINUTES = {
