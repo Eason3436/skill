@@ -1,0 +1,866 @@
+<title>OKX 網格實測：多頭網格 vs 空頭網格收益率</title>
+<style>
+:root{
+  color-scheme: light;
+  --ground:#f4f6f8; --surface:#ffffff; --surface-2:#eef1f5;
+  --ink:#0c1116; --ink-2:#4c5765; --ink-3:#8a94a2;
+  --rule:#dfe4ea; --rule-2:#c9d1da;
+  --long:#2a78d6; --short:#eb6834; --neutral:#1baf7a;
+  --long-soft:rgba(42,120,214,.13); --short-soft:rgba(235,104,52,.13);
+  --pos:#0a7d0a; --neg:#c2302f;
+  --serif: ui-serif,"Iowan Old Style","Palatino Linotype",Palatino,"Songti TC","Noto Serif CJK TC",Georgia,serif;
+  --sans: system-ui,-apple-system,"Segoe UI","PingFang TC","Noto Sans CJK TC",sans-serif;
+  --mono: ui-monospace,"SF Mono","Cascadia Mono",Menlo,Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#0d1116; --surface:#141a21; --surface-2:#1b232b;
+    --ink:#e8edf3; --ink-2:#a3aeba; --ink-3:#69737f;
+    --rule:#232b34; --rule-2:#333d48;
+    --long:#3987e5; --short:#d95926; --neutral:#199e70;
+    --long-soft:rgba(57,135,229,.18); --short-soft:rgba(217,89,38,.18);
+    --pos:#31b431; --neg:#e35b5a;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#0d1116; --surface:#141a21; --surface-2:#1b232b;
+  --ink:#e8edf3; --ink-2:#a3aeba; --ink-3:#69737f;
+  --rule:#232b34; --rule-2:#333d48;
+  --long:#3987e5; --short:#d95926; --neutral:#199e70;
+  --long-soft:rgba(57,135,229,.18); --short-soft:rgba(217,89,38,.18);
+  --pos:#31b431; --neg:#e35b5a;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--sans); font-size:16px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1140px; margin:0 auto; padding:0 24px 96px}
+.col{max-width:70ch}
+h1,h2,h3{font-family:var(--serif); font-weight:600; text-wrap:balance; line-height:1.25; margin:0}
+p{margin:0}
+a{color:var(--long)}
+code{font-family:var(--mono); font-size:.9em; background:var(--surface-2); padding:.12em .38em; border-radius:2px}
+
+/* ---- grid-ladder motif: rungs echo the bot's price levels ---- */
+.rungs{
+  display:block; width:34px; height:13px; flex:none;
+  background:
+    linear-gradient(var(--rule-2),var(--rule-2)) 0 0/34px 1.5px no-repeat,
+    linear-gradient(var(--rule-2),var(--rule-2)) 0 5px/24px 1.5px no-repeat,
+    linear-gradient(var(--rule-2),var(--rule-2)) 0 10px/14px 1.5px no-repeat;
+}
+
+header.masthead{border-bottom:1.5px solid var(--ink); padding:56px 0 22px; margin-bottom:0}
+.eyebrow{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--ink-3); display:flex; align-items:center; gap:12px; margin-bottom:20px;
+}
+.eyebrow::after{content:""; flex:1; height:1px; background:var(--rule)}
+h1{font-size:clamp(30px,4.4vw,50px); letter-spacing:-.015em}
+.dek{font-size:19px; color:var(--ink-2); margin-top:16px; max-width:60ch; line-height:1.6}
+
+.meta{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px;
+  background:var(--rule); border-bottom:1px solid var(--rule); margin-bottom:56px;
+}
+.meta div{background:var(--ground); padding:14px 18px 16px 0}
+.meta dt{font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3)}
+.meta dd{
+  margin:5px 0 0; font-family:var(--mono); font-size:12.5px; line-height:1.45;
+  color:var(--ink); font-variant-numeric:tabular-nums; overflow-wrap:anywhere;
+}
+
+section{margin-bottom:64px}
+.sechead{display:flex; align-items:baseline; gap:14px; margin-bottom:8px}
+.secnum{font-family:var(--mono); font-size:12px; color:var(--ink-3); letter-spacing:.1em; padding-top:4px}
+h2{font-size:clamp(22px,2.6vw,30px); letter-spacing:-.01em}
+h3{font-size:18px; margin:36px 0 10px}
+.secrule{display:flex; align-items:center; gap:14px; margin:14px 0 26px}
+.secrule::after{content:""; flex:1; height:1px; background:var(--rule)}
+.lede{font-size:17px; color:var(--ink-2); margin-bottom:22px}
+p + p{margin-top:14px}
+.col p{color:var(--ink-2)}
+.col p strong{color:var(--ink); font-weight:600}
+
+/* ---- thesis ---- */
+.thesis{
+  background:var(--surface); border:1px solid var(--rule); border-top:2.5px solid var(--ink);
+  padding:34px 34px 30px; margin-bottom:56px;
+}
+.thesis .label{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); margin-bottom:14px}
+.thesis p{font-family:var(--serif); font-size:clamp(19px,2.3vw,24px); line-height:1.5; color:var(--ink); text-wrap:pretty}
+.thesis p + p{margin-top:16px; font-size:16px; font-family:var(--sans); color:var(--ink-2); line-height:1.65}
+
+/* ---- stat tiles ---- */
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule)}
+.tile{background:var(--surface); padding:20px 22px 22px}
+.tile .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); display:flex; align-items:center; gap:7px}
+.tile .v{font-family:var(--mono); font-size:34px; font-variant-numeric:tabular-nums; letter-spacing:-.02em; margin-top:10px; line-height:1}
+.tile .s{font-size:13px; color:var(--ink-2); margin-top:9px; line-height:1.5}
+.swatch{width:9px; height:9px; flex:none; border-radius:1px}
+.sw-l{background:var(--long)} .sw-s{background:var(--short)} .sw-n{background:var(--neutral)}
+
+/* ---- figures ---- */
+figure{margin:30px 0 0; background:var(--surface); border:1px solid var(--rule); padding:22px 22px 16px}
+figcaption{font-size:13.5px; color:var(--ink-2); margin-top:14px; padding-top:13px; border-top:1px solid var(--rule); line-height:1.6}
+figcaption b{color:var(--ink); font-weight:600}
+.figtitle{font-family:var(--serif); font-size:17px; margin-bottom:3px}
+.figsub{font-size:13px; color:var(--ink-3); margin-bottom:18px}
+.legend{display:flex; flex-wrap:wrap; gap:18px; margin-bottom:16px; font-family:var(--mono); font-size:12px; color:var(--ink-2)}
+.legend span{display:flex; align-items:center; gap:7px}
+.chart{width:100%; overflow-x:auto}
+svg{display:block; max-width:100%; height:auto}
+.ax{fill:var(--ink-3); font-family:var(--mono); font-size:11px}
+.axlab{fill:var(--ink-2); font-family:var(--mono); font-size:11px; letter-spacing:.06em}
+.grid-line{stroke:var(--rule); stroke-width:1}
+.zero-line{stroke:var(--rule-2); stroke-width:1.5}
+.dlab{font-family:var(--mono); font-size:11.5px; font-weight:600}
+
+/* ---- tables ---- */
+.tablewrap{overflow-x:auto; margin-top:26px; border:1px solid var(--rule); background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-family:var(--mono); font-size:13px; font-variant-numeric:tabular-nums; white-space:nowrap}
+th,td{padding:9px 14px; text-align:right; border-bottom:1px solid var(--rule)}
+th{
+  font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3);
+  font-weight:500; background:var(--surface-2);
+}
+td:first-child,th:first-child{text-align:left}
+tbody tr:last-child td{border-bottom:none}
+tr.grp td{background:var(--surface-2); font-family:var(--sans); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); text-align:left}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+.mode-l{color:var(--long)} .mode-s{color:var(--short)} .mode-n{color:var(--neutral)}
+.dim{color:var(--ink-3)}
+caption{caption-side:bottom; text-align:left; font-family:var(--sans); font-size:13px; color:var(--ink-2); padding:13px 14px 0; line-height:1.6; white-space:normal}
+
+/* ---- callout ---- */
+.note{border-left:2px solid var(--rule-2); padding:2px 0 2px 20px; margin:26px 0; font-size:15px; color:var(--ink-2)}
+.note b{color:var(--ink)}
+ul{margin:14px 0; padding-left:20px; color:var(--ink-2)}
+li{margin:8px 0}
+li b{color:var(--ink); font-weight:600}
+pre{
+  font-family:var(--mono); font-size:12.5px; background:var(--surface); color:var(--ink-2);
+  border:1px solid var(--rule); padding:16px 18px; overflow-x:auto; line-height:1.65; margin:18px 0 0;
+}
+footer{border-top:1px solid var(--rule); padding-top:22px; font-size:13px; color:var(--ink-3); line-height:1.7}
+
+/* ---- tooltip ---- */
+#tip{
+  position:fixed; pointer-events:none; opacity:0; transition:opacity .1s;
+  background:var(--surface); border:1px solid var(--rule-2); padding:8px 11px;
+  font-family:var(--mono); font-size:12px; color:var(--ink); line-height:1.55;
+  box-shadow:0 4px 16px rgba(0,0,0,.13); z-index:50; white-space:nowrap; font-variant-numeric:tabular-nums;
+}
+.hit{cursor:crosshair}
+:focus-visible{outline:2px solid var(--long); outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important; animation:none!important}}
+@media (max-width:640px){
+  .wrap{padding:0 16px 64px}
+  .thesis{padding:24px 20px}
+  figure{padding:16px 14px 12px}
+}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">OKX 公開行情實測 · 回測報告</div>
+  <h1>多頭網格 vs 空頭網格：<br>收益率到底差在哪？</h1>
+  <p class="dek">用 OKX v5 公開 API 的真實 K 線與資金費率，對 BTC / ETH / SOL / DOGE 永續合約跑 200 個滾動視窗，拆解兩種網格方向的報酬來源。</p>
+</header>
+
+<dl class="meta">
+  <div><dt>資料來源</dt><dd>OKX v5 public API</dd></div>
+  <div><dt>樣本期間</dt><dd id="m-period">—</dd></div>
+  <div><dt>標的</dt><dd>BTC · ETH · SOL · DOGE</dd></div>
+  <div><dt>K 線</dt><dd>15m（80,640 根）</dd></div>
+  <div><dt>網格參數</dt><dd>50 格 · 等差 · 1x</dd></div>
+  <div><dt>手續費</dt><dd>掛單 0.02%</dd></div>
+</dl>
+
+<div class="thesis">
+  <div class="label">結論</div>
+  <p>網格引擎本身幾乎沒有方向偏好——多頭與空頭網格賺到的「網格利潤」相差不到一個百分點。收益率的全部差距來自那筆你沒在看的持倉浮虧。</p>
+  <p>在這段樣本裡空頭網格帳面上贏（30 天平均 +1.43% vs 多頭 −0.39%），但那是因為期間本身偏空。把真實下跌路徑做幾何鏡像後再測，空頭網格面對同樣幅度的逆風反而虧得<em>更多</em>。所謂「空頭網格比較穩」是取樣造成的錯覺。</p>
+</div>
+
+<section>
+  <div class="sechead"><span class="rungs"></span><h2>三個數字</h2></div>
+  <div class="secrule"></div>
+  <div class="tiles" id="tiles"></div>
+</section>
+
+<section id="method">
+  <div class="sechead"><span class="secnum">01</span><h2>怎麼測的</h2></div>
+  <div class="secrule"></div>
+  <div class="col">
+    <p>回測模擬的是 OKX 網格機器人的<strong>實際掛單狀態機</strong>，不是簡化的「穿越價格就算成交」：每筆買單成交後，會在上一格掛出對應賣單；賣單成交後在下一格補回買單。多頭網格的倉位永遠 ≥ 0，空頭網格永遠 ≤ 0，價格離開區間就停止成交、抱著倉位不動——和真實 bot 沒設止損時的行為一致。</p>
+    <p>網格區間取<strong>開始日之前</strong> 30 天的最高最低價，避免用未來資訊設參數。多頭、空頭、中性三種模式吃完全相同的區間與格數，投入資金同為 10,000 USDT，唯一差別就是方向。資金費率用 OKX 實際結算值逐次計入。</p>
+    <p>單一區間的一次結果說服力不足，所以主結果是<strong>滾動視窗</strong>：每 3 天起一個 30 天視窗，四個幣種共 200 個樣本，再按期間內買入持有的漲跌幅分成上漲 / 盤整 / 下跌三類。</p>
+    <p class="note"><b>成交判定：</b>單根 K 線內的路徑不可知，收黑的 K 線走 開→高→低→收，收紅走 開→低→高→收。這個假設會不會撐起結論？下面穩健性一節用 5m / 15m / 1H 三種解析度交叉驗證過，差異在 0.2 個百分點內。</p>
+  </div>
+</section>
+
+<section id="single">
+  <div class="sechead"><span class="secnum">02</span><h2>單一區間實測</h2></div>
+  <div class="secrule"></div>
+  <div class="col">
+    <p class="lede">先看最直觀的：從今天往回推 30 / 90 / 180 天，各跑一次。同一列的三種模式共用同一組網格參數。</p>
+  </div>
+  <div class="tablewrap"><table id="t-head"></table></div>
+</section>
+
+<section id="rolling">
+  <div class="sechead"><span class="secnum">03</span><h2>200 個滾動視窗的分布</h2></div>
+  <div class="secrule"></div>
+  <div class="col">
+    <p class="lede">單次結果只是一個抽樣。把視窗滾起來，兩片點雲的形狀才是重點——多頭網格的收益率幾乎就是市場漲跌幅的一次函數，R² 高達 0.88。</p>
+  </div>
+
+  <figure>
+    <div class="figtitle">30 天報酬 vs 同期市場漲跌幅</div>
+    <div class="figsub">每點 = 一個 30 天視窗，共 200 個 · 橫軸為該期間買入持有報酬</div>
+    <div class="legend">
+      <span><i class="swatch sw-l"></i>多頭網格</span>
+      <span><i class="swatch sw-s"></i>空頭網格</span>
+      <span class="dim">灰線 = 買入持有（斜率 1）</span>
+    </div>
+    <div class="chart"><svg id="c-scatter" viewBox="0 0 1000 520" role="img" aria-label="散點圖：多頭與空頭網格 30 天報酬對市場漲跌幅"></svg></div>
+    <figcaption id="cap-scatter">—</figcaption>
+  </figure>
+
+  <figure>
+    <div class="figtitle">依市場狀態分組的平均報酬</div>
+    <div class="figsub">30 天視窗平均 · 上漲 = 期間漲幅 &gt;5%，下跌 = 跌幅 &gt;5%</div>
+    <div class="legend">
+      <span><i class="swatch sw-l"></i>多頭網格</span>
+      <span><i class="swatch sw-s"></i>空頭網格</span>
+      <span><i class="swatch sw-n"></i>中性網格</span>
+    </div>
+    <div class="chart"><svg id="c-regime" viewBox="0 0 1000 400" role="img" aria-label="長條圖：三種市場狀態下三種網格模式的平均報酬"></svg></div>
+    <figcaption>只有<b>盤整</b>那一組三種模式都賺，而且彼此差距在 0.3 個百分點內——那才是網格真正有效的地方。上漲與下跌組裡，決定勝負的完全是方向押對沒有。</figcaption>
+  </figure>
+
+  <div class="tablewrap"><table id="t-regime"></table></div>
+</section>
+
+<section id="decomp">
+  <div class="sechead"><span class="secnum">04</span><h2>錢從哪裡來</h2></div>
+  <div class="secrule"></div>
+  <div class="col">
+    <p class="lede">把報酬拆成兩塊：來回掛單賺到的<strong>網格利潤</strong>（已實現），和手上還沒平掉的<strong>持倉浮動盈虧</strong>。這一拆，事情就清楚了。</p>
+  </div>
+
+  <figure>
+    <div class="figtitle">順勢與逆勢下的損益拆解</div>
+    <div class="figsub">30 天視窗平均，占投入本金 % · 含手續費與資金費</div>
+    <div class="chart"><svg id="c-align" viewBox="0 0 1000 400" role="img" aria-label="橫條圖：四種順逆勢情境下網格利潤與浮動盈虧的拆解"></svg></div>
+    <figcaption>四種情境的網格利潤都在 <b>+2.2% 到 +6.8%</b> 這個窄帶裡，不管方向對不對都在穩定進帳。真正把總報酬打到 −12.31% 的，是多頭網格逆勢時那筆 <b>−14.23%</b> 的浮虧。網格利潤是薄薄的，浮虧是厚的。</figcaption>
+  </figure>
+
+  <div class="col">
+    <p>還有一個容易忽略的機制：<strong>順勢的網格會不斷實現利潤，逆勢的網格只會不斷累積倉位</strong>。多頭網格在上漲時把手上的貨一格一格賣掉，每賣一格就落袋一格；在下跌時卻是一格一格買進，帳上只有越來越大的部位和越來越深的浮虧。所以上漲組多頭網格的網格利潤（6.77%）明顯高於下跌組（2.22%）——不是它在跌勢中變懶了，是它根本沒有東西可以平。</p>
+  </div>
+</section>
+
+<section id="mirror">
+  <div class="sechead"><span class="secnum">05</span><h2>空頭網格真的比較安全嗎</h2></div>
+  <div class="secrule"></div>
+  <div class="col">
+    <p class="lede">滾動視窗裡空頭網格平均贏，逆勢時也只虧 −3.03%，而多頭網格逆勢虧 −12.31%。看起來空頭網格結構上就比較耐打。這個推論是錯的，而且可以證明。</p>
+    <p>問題出在樣本：這 210 天裡，下跌視窗平均跌 <strong>−16.6%</strong>，上漲視窗只漲 <strong>+11.5%</strong>；而且跌勢更兇更直——下跌期間價格只有 <strong>55.6%</strong> 的時間待在網格區間內，上漲期間有 <strong>85.8%</strong>。空頭網格遇到的逆風本來就比較溫和。</p>
+    <p>要拆開「路徑形狀」和「網格數學」，就把每一段真實價格路徑<strong>繞進場價做幾何鏡像</strong>（p′ = 進場價² / p）：每個 −x% 精準翻成 +x%，時間節奏與震盪程度原封不動。然後拿空頭網格去跑鏡像路徑——這正是多頭網格在原始路徑上的嚴格對照組。</p>
+  </div>
+
+  <figure>
+    <div class="figtitle">鏡像對照：多頭網格走真實路徑 vs 空頭網格走鏡像路徑</div>
+    <div class="figsub">兩者面對的漲跌幅度、震盪節奏完全相同，方向相反</div>
+    <div class="legend">
+      <span><i class="swatch sw-l"></i>多頭網格 / 真實路徑</span>
+      <span><i class="swatch sw-s"></i>空頭網格 / 鏡像路徑</span>
+    </div>
+    <div class="chart"><svg id="c-mirror" viewBox="0 0 1000 380" role="img" aria-label="長條圖：真實路徑多頭網格與鏡像路徑空頭網格的報酬對比"></svg></div>
+    <figcaption>每一組空頭網格都比多頭網格差一截，大跌組差距最大：<b>−18.72% vs −23.51%</b>。同樣幅度的逆風下，空頭網格虧得更多——因為做空的虧損隨價格上漲而加速，而做多的虧損有 −100% 的地板。<b>空頭網格在結構上比多頭網格更危險，不是更安全。</b></figcaption>
+  </figure>
+
+  <div class="note">
+    <b>那為什麼實測空頭網格贏？</b>因為加密市場「跌得快、漲得磨」。跌勢直接穿出網格區間繼續走，多頭網格滿倉硬吃；漲勢在區間內來回磨，空頭網格一邊虧一邊還在收網格利潤。這是這段期間的市場性格，不是空頭網格的優勢——市場性格會變，數學不會。
+  </div>
+</section>
+
+<section id="curve">
+  <div class="sechead"><span class="secnum">06</span><h2>180 天淨值曲線</h2></div>
+  <div class="secrule"></div>
+  <div class="col">
+    <p class="lede">同一組 BTC 網格參數，三種方向並排。價格軌跡單獨畫在上方共用同一條時間軸——刻意不做雙軸。</p>
+  </div>
+  <figure>
+    <div class="figtitle" id="curve-title">BTC-USDT-SWAP · 180 天</div>
+    <div class="figsub" id="curve-sub">—</div>
+    <div class="legend">
+      <span><i class="swatch sw-l"></i>多頭網格</span>
+      <span><i class="swatch sw-s"></i>空頭網格</span>
+      <span><i class="swatch sw-n"></i>中性網格</span>
+    </div>
+    <div class="chart"><svg id="c-curve" viewBox="0 0 1000 560" role="img" aria-label="折線圖：BTC 價格軌跡與三種網格模式的淨值曲線"></svg></div>
+    <figcaption id="curve-cap">—</figcaption>
+  </figure>
+</section>
+
+<section id="funding">
+  <div class="sechead"><span class="secnum">07</span><h2>資金費率：小，但不是零</h2></div>
+  <div class="secrule"></div>
+  <div class="col">
+    <p class="lede">永續合約網格會持續持有部位，所以每 8 小時的資金費會累積。這是多頭網格獨有的一項結構性成本。</p>
+  </div>
+  <div class="tablewrap"><table id="t-fund"></table></div>
+  <div class="col">
+    <p style="margin-top:18px">30 天量級只有零點幾個百分點，遠小於浮動盈虧，但方向是固定的：<strong>多頭網格長期付費、空頭網格長期收費</strong>。單一區間拉到 180 天，BTC 多頭網格的資金費成本是 −0.70%，DOGE 是 −1.07%——放在動輒 10% 以上的網格利潤旁邊不致命，但它是持續失血，不會因為行情好轉而回來。</p>
+  </div>
+</section>
+
+<section id="robust">
+  <div class="sechead"><span class="secnum">08</span><h2>穩健性檢查</h2></div>
+  <div class="secrule"></div>
+  <div class="col">
+    <p class="lede">結論會不會是某個參數選出來的？把每個關鍵假設換掉重跑一次。</p>
+  </div>
+  <div class="tablewrap"><table id="t-sweep"></table></div>
+  <div class="col">
+    <p style="margin-top:18px">最關鍵的一組是 K 線解析度：<strong>5m 與 15m 在同樣的兩個幣上，結果差 0.04 個百分點</strong>（多頭 0.59 vs 0.55，空頭 1.71 vs 1.68），1H 也只差 0.3 以內。單根 K 線的路徑假設沒有在製造利潤。格數、等差 / 等比、手續費、槓桿、視窗長度全部換過，多空的相對關係與「網格利潤接近對稱」都沒有動搖。</p>
+  </div>
+</section>
+
+<section id="limits">
+  <div class="sechead"><span class="secnum">09</span><h2>這份回測不能告訴你什麼</h2></div>
+  <div class="secrule"></div>
+  <div class="col">
+    <ul>
+      <li><b>樣本只有 210 天、四個幣種。</b>期間整體偏空（買入持有平均 −1.71%），任何依賴市場方向的結論都不該外推。</li>
+      <li><b>滾動視窗高度重疊。</b>每 3 天起一個 30 天視窗，相鄰樣本共用 90% 的資料，所以「勝率 74%」不是 200 次獨立試驗的勝率，不能當統計顯著性看。</li>
+      <li><b>假設全部以掛單成交、零滑價。</b>真實網格在急速穿價時會有部分單子吃不到或被迫吃單，實際成交次數與費率都會比這裡差。</li>
+      <li><b>沒有模擬止損、止盈與手動重啟。</b>價格離開區間後就一直抱著。真實使用者多半會在某個時點認賠或重設區間，那會大幅改變尾端損失的分布。</li>
+      <li><b>資金費率只有近 98 天完整。</b>OKX 的歷史資金費率端點約只回溯三個月，200 個視窗中有 128 個涵蓋完整資金費；較早的視窗低估了這項成本。</li>
+      <li><b>1x 槓桿、不含爆倉。</b>合約網格用槓桿時，逆勢那條尾巴會直接變成強平，本回測的浮虧數字在高槓桿下沒有意義。</li>
+    </ul>
+    <p class="note" style="margin-top:24px"><b>這不是投資建議。</b>回測結果不預測未來報酬，實盤結果會因滑價、成交、參數與市場結構而不同。</p>
+  </div>
+</section>
+
+<section id="repro">
+  <div class="sechead"><span class="secnum">10</span><h2>重現</h2></div>
+  <div class="secrule"></div>
+  <div class="col">
+    <p class="lede">全部程式碼在 <code>grid-backtest/</code>，只用標準函式庫，不需要 API 金鑰。</p>
+  </div>
+<pre># 1. 抓 OKX 公開資料（K 線 + 資金費率）
+python3 fetch_okx.py --outdir data --days 210 --bar 15m
+
+# 2. 引擎自我驗證（9 項合成路徑檢查）
+python3 test_engine.py
+
+# 3. 單一區間實測
+python3 grid_backtest.py --datadir data --days 90 --lookback 30 --grids 50
+
+# 4. 滾動視窗 + 市場狀態分組
+python3 rolling_study.py --datadir data --window 30 --step 3 --out rolling30.json
+
+# 5. 鏡像對照檢驗
+python3 mirror_test.py --datadir data</pre>
+</section>
+
+<footer>
+  資料取自 OKX v5 公開端點 <code>/api/v5/market/history-candles</code> 與 <code>/api/v5/public/funding-rate-history</code>，
+  抓取時間 <span id="f-date">—</span>。所有數字皆由 <code>grid-backtest/</code> 內的腳本重新計算產生，未經手動調整。
+</footer>
+
+</div>
+
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function(){
+"use strict";
+const D = JSON.parse(document.getElementById("data").textContent);
+const SVGNS = "http://www.w3.org/2000/svg";
+const MODES = ["long","short","neutral"];
+const NAME = {long:"多頭網格", short:"空頭網格", neutral:"中性網格"};
+const CVAR = {long:"var(--long)", short:"var(--short)", neutral:"var(--neutral)"};
+const CLS  = {long:"mode-l", short:"mode-s", neutral:"mode-n"};
+
+const fmt = (v,d=2)=> (v>0?"+":"") + v.toFixed(d);
+const sign = v => v > 0 ? "pos" : (v < 0 ? "neg" : "dim");
+
+function el(tag, attrs, text){
+  const n = document.createElementNS(SVGNS, tag);
+  for(const k in attrs) n.setAttribute(k, attrs[k]);
+  if(text !== undefined) n.textContent = text;
+  return n;
+}
+function h(tag, attrs, html){
+  const n = document.createElement(tag);
+  if(attrs) for(const k in attrs) k === "class" ? n.className = attrs[k] : n.setAttribute(k, attrs[k]);
+  if(html !== undefined) n.innerHTML = html;
+  return n;
+}
+
+/* ---------------- tooltip ---------------- */
+const tip = document.getElementById("tip");
+function showTip(e, html){
+  tip.innerHTML = html;
+  tip.style.opacity = 1;
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY - r.height - 12;
+  if(x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if(y < 8) y = e.clientY + 16;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+function hideTip(){ tip.style.opacity = 0; }
+function hit(node, html){
+  node.classList.add("hit");
+  node.addEventListener("mousemove", e => showTip(e, html));
+  node.addEventListener("mouseleave", hideTip);
+}
+
+/* ---------------- header meta ---------------- */
+const h180 = D.headline["180"][0];
+document.getElementById("m-period").textContent = h180.start + " → " + h180.end;
+document.getElementById("f-date").textContent = h180.end;
+
+/* ---------------- stat tiles ---------------- */
+(function tiles(){
+  const R = D.rolling.regimes, m = D.mirror.find(x => x.label === "跌 >15%");
+  const items = [
+    { k:"網格利潤：多頭 vs 空頭", sw:null,
+      v: R.all.long.grid.toFixed(2) + " / " + R.all.short.grid.toFixed(2) + "%",
+      c: "var(--ink)",
+      s: "30 天平均已實現網格利潤。引擎本身幾乎沒有方向偏好，差距不到 0.8 個百分點。" },
+    { k:"總報酬：多頭 vs 空頭", sw:null,
+      v: fmt(R.all.long.mean) + " / " + fmt(R.all.short.mean) + "%",
+      c: "var(--ink)",
+      s: "同樣 200 個視窗的總報酬。差距被浮動盈虧拉開，而不是被網格效率拉開。" },
+    { k:"鏡像對照下的空頭網格", sw:null,
+      v: fmt(m.mirror_short) + "%",
+      c: "var(--short)",
+      s: "面對與真實大跌完全鏡像的漲勢，空頭網格虧 " + Math.abs(m.mirror_short).toFixed(2) +
+         "%，比多頭網格在原始跌勢的 " + Math.abs(m.real_long).toFixed(2) + "% 更差。" }
+  ];
+  const box = document.getElementById("tiles");
+  items.forEach(it => {
+    const t = h("div", {class:"tile"});
+    t.appendChild(h("div", {class:"k"}, it.k));
+    const v = h("div", {class:"v"}, it.v); v.style.color = it.c; t.appendChild(v);
+    t.appendChild(h("div", {class:"s"}, it.s));
+    box.appendChild(t);
+  });
+})();
+
+/* ---------------- table: single-window headline ---------------- */
+(function headTable(){
+  const t = document.getElementById("t-head");
+  t.innerHTML =
+    "<thead><tr><th>標的</th><th>模式</th><th>報酬%</th><th>年化%</th><th>網格利潤%</th>" +
+    "<th>浮動盈虧%</th><th>手續費%</th><th>資金費%</th><th>最大回撤%</th><th>成交</th>" +
+    "<th>區間內%</th><th>買入持有%</th></tr></thead>";
+  const tb = h("tbody");
+  ["30","90","180"].forEach(days => {
+    const g = h("tr", {class:"grp"});
+    g.appendChild(h("td", {colspan:"12"}, "近 " + days + " 天　·　" + D.headline[days][0].start + " → " + D.headline[days][0].end));
+    tb.appendChild(g);
+    D.headline[days].forEach(row => {
+      MODES.forEach((m,i) => {
+        const d = row[m], tr = h("tr");
+        tr.appendChild(h("td", null, i === 0 ? "<b>" + row.inst + "</b>" : "<span class='dim'>" + row.inst + "</span>"));
+        tr.appendChild(h("td", {class:CLS[m]}, NAME[m]));
+        tr.appendChild(h("td", {class:sign(d.ret)}, "<b>" + fmt(d.ret) + "</b>"));
+        tr.appendChild(h("td", {class:sign(d.apr)}, fmt(d.apr,1)));
+        tr.appendChild(h("td", null, d.grid.toFixed(2)));
+        tr.appendChild(h("td", {class:sign(d.float)}, fmt(d.float)));
+        tr.appendChild(h("td", {class:"dim"}, d.fee.toFixed(2)));
+        tr.appendChild(h("td", {class:sign(d.fund)}, fmt(d.fund)));
+        tr.appendChild(h("td", null, d.dd.toFixed(2)));
+        tr.appendChild(h("td", {class:"dim"}, d.fills));
+        tr.appendChild(h("td", {class:"dim"}, i === 0 ? row.in_range.toFixed(0) : ""));
+        tr.appendChild(h("td", {class: i === 0 ? sign(row.bh) : "dim"}, i === 0 ? fmt(row.bh) : ""));
+        tb.appendChild(tr);
+      });
+    });
+  });
+  t.appendChild(tb);
+  t.appendChild(h("caption", null,
+    "投入 10,000 USDT，1x，50 格等差，掛單費 0.02%。網格區間取起始日前 30 天高低點。「區間內%」= 收盤價落在網格範圍內的時間比例，三種模式共用同一區間故只標一次。"));
+})();
+
+/* ---------------- chart: scatter ---------------- */
+(function scatter(){
+  const svg = document.getElementById("c-scatter");
+  const W = 1000, H = 520, P = {t:16, r:22, b:52, l:58};
+  const xs = D.scatter.map(d => d.bh);
+  const ys = D.scatter.flatMap(d => [d.l, d.s]);
+  const xmin = Math.floor(Math.min(...xs)/5)*5, xmax = Math.ceil(Math.max(...xs)/5)*5;
+  const ymin = Math.floor(Math.min(...ys)/5)*5, ymax = Math.ceil(Math.max(...ys)/5)*5;
+  const X = v => P.l + (v - xmin)/(xmax - xmin) * (W - P.l - P.r);
+  const Y = v => H - P.b - (v - ymin)/(ymax - ymin) * (H - P.t - P.b);
+
+  for(let v = Math.ceil(ymin/10)*10; v <= ymax; v += 10){
+    svg.appendChild(el("line", {x1:P.l, x2:W-P.r, y1:Y(v), y2:Y(v), class: v === 0 ? "zero-line" : "grid-line"}));
+    svg.appendChild(el("text", {x:P.l-10, y:Y(v)+4, class:"ax", "text-anchor":"end"}, v + "%"));
+  }
+  for(let v = Math.ceil(xmin/10)*10; v <= xmax; v += 10){
+    svg.appendChild(el("line", {x1:X(v), x2:X(v), y1:P.t, y2:H-P.b, class: v === 0 ? "zero-line" : "grid-line"}));
+    svg.appendChild(el("text", {x:X(v), y:H-P.b+20, class:"ax", "text-anchor":"middle"}, v + "%"));
+  }
+  // buy & hold reference: slope 1
+  const a = Math.max(xmin, ymin), b = Math.min(xmax, ymax);
+  svg.appendChild(el("line", {x1:X(a), y1:Y(a), x2:X(b), y2:Y(b),
+    stroke:"var(--rule-2)", "stroke-width":1.5, "stroke-dasharray":"5 5"}));
+  svg.appendChild(el("text", {x:X(a)+10, y:Y(a)-8, class:"ax", "text-anchor":"start",
+    fill:"var(--ink-3)"}, "買入持有（斜率 1）"));
+
+  D.scatter.forEach(d => {
+    [["s","short"],["l","long"]].forEach(([key, mode]) => {
+      const c = el("circle", {cx:X(d.bh), cy:Y(d[key]), r:4.2, fill:CVAR[mode],
+        "fill-opacity":.62, stroke:"var(--surface)", "stroke-width":1.2});
+      hit(c, "<b>" + d.inst + "</b> · " + NAME[mode] + "<br>市場 " + fmt(d.bh) + "%　→　網格 " + fmt(d[key]) + "%");
+      svg.appendChild(c);
+    });
+  });
+
+  // least-squares fit per series — the slope IS the residual directional exposure
+  function fit(key){
+    const xs = D.scatter.map(d => d.bh), ys = D.scatter.map(d => d[key]);
+    const mx = xs.reduce((a,b)=>a+b,0)/xs.length, my = ys.reduce((a,b)=>a+b,0)/ys.length;
+    let num = 0, den = 0;
+    for(let i=0;i<xs.length;i++){ num += (xs[i]-mx)*(ys[i]-my); den += (xs[i]-mx)**2; }
+    const b = num/den, a = my - b*mx;
+    const sst = ys.reduce((s,y)=>s+(y-my)**2,0);
+    const sse = ys.reduce((s,y,i)=>s+(y-(a+b*xs[i]))**2,0);
+    return {b, a, r2: 1 - sse/sst};
+  }
+  const F = {long: fit("l"), short: fit("s"), neutral: fit("n")};
+  [["long","l"],["short","s"]].forEach(([mode]) => {
+    const f = F[mode];
+    svg.appendChild(el("line", {x1:X(xmin), y1:Y(f.a + f.b*xmin), x2:X(xmax), y2:Y(f.a + f.b*xmax),
+      stroke:CVAR[mode], "stroke-width":2.5, opacity:.85}));
+  });
+
+  // direct labels on the two clouds
+  const lab = (mode, x, y, txt, anchor) => svg.appendChild(
+    el("text", {x, y, class:"dlab", fill:CVAR[mode], "text-anchor":anchor||"start"}, txt));
+  lab("long", X(xmax)-8, Y(F.long.a + F.long.b*xmax) + 24, "多頭網格　斜率 " + fmt(F.long.b,2), "end");
+  lab("short", X(xmin)+8, Y(F.short.a + F.short.b*xmin) - 14, "空頭網格　斜率 " + fmt(F.short.b,2));
+  document.getElementById("cap-scatter").innerHTML =
+    "兩片點雲各自貼著一條迴歸線，方向相反，在 0% 附近交叉。<b>網格沒有把方向風險消掉，只是把方向暴露打了折</b>——" +
+    "多頭網格對市場漲跌的斜率是 <b>" + fmt(F.long.b,2) + "</b>（R²&nbsp;" + F.long.r2.toFixed(2) +
+    "），也就是市場每跌 1%，它平均跟著跌 " + Math.abs(F.long.b).toFixed(2) +
+    "%；空頭網格是 <b>" + fmt(F.short.b,2) + "</b>（R²&nbsp;" + F.short.r2.toFixed(2) +
+    "），方向相反、暴露較小。連中性網格都還有 " + fmt(F.neutral.b,2) +
+    " 的殘餘斜率，沒有任何一種網格是真正的市場中性。";
+  svg.appendChild(el("text", {x:W/2, y:H-12, class:"axlab", "text-anchor":"middle"}, "同期買入持有報酬 (%)"));
+  svg.appendChild(el("text", {x:16, y:H/2, class:"axlab", "text-anchor":"middle",
+    transform:"rotate(-90 16 " + (H/2) + ")"}, "網格 30 天報酬 (%)"));
+})();
+
+/* ---------------- chart: regime grouped bars ---------------- */
+(function regime(){
+  const svg = document.getElementById("c-regime");
+  const W = 1000, H = 400, P = {t:20, r:24, b:66, l:58};
+  const R = D.rolling.regimes;
+  const groups = [
+    ["up", "上漲　平均 " + fmt(R.up.bh) + "%"],
+    ["range", "盤整　平均 " + fmt(R.range.bh) + "%"],
+    ["down", "下跌　平均 " + fmt(R.down.bh) + "%"]
+  ];
+  const vals = groups.flatMap(([k]) => MODES.map(m => R[k][m].mean));
+  const ymax = Math.ceil(Math.max(...vals, 2)/2)*2, ymin = Math.floor(Math.min(...vals, -2)/2)*2;
+  const Y = v => H - P.b - (v - ymin)/(ymax - ymin) * (H - P.t - P.b);
+  const gw = (W - P.l - P.r) / groups.length;
+  const bw = 52, gap = 2;
+
+  for(let v = Math.ceil(ymin/4)*4; v <= ymax; v += 4){
+    svg.appendChild(el("line", {x1:P.l, x2:W-P.r, y1:Y(v), y2:Y(v), class: v===0?"zero-line":"grid-line"}));
+    svg.appendChild(el("text", {x:P.l-10, y:Y(v)+4, class:"ax", "text-anchor":"end"}, v + "%"));
+  }
+  groups.forEach(([k, label], gi) => {
+    const cx = P.l + gw*gi + gw/2;
+    MODES.forEach((m, mi) => {
+      const d = R[k][m], v = d.mean;
+      const x = cx + (mi - 1)*(bw + gap) - bw/2;
+      const y0 = Y(0), y1 = Y(v);
+      const top = Math.min(y0, y1), hgt = Math.max(1.5, Math.abs(y1 - y0));
+      const rct = el("rect", {x, y:top, width:bw, height:hgt, fill:CVAR[m], rx:4,
+        stroke:"var(--surface)", "stroke-width":2});
+      hit(rct, "<b>" + NAME[m] + "</b> · " + label.split("　")[0] +
+        "<br>平均 " + fmt(v) + "%　中位 " + fmt(d.median) + "%<br>勝率 " + d.win +
+        "%　n=" + R[k].n + "<br>網格利潤 " + d.grid.toFixed(2) + "%　浮動 " + fmt(d.float) + "%");
+      svg.appendChild(rct);
+      svg.appendChild(el("text", {x:x + bw/2, y: v >= 0 ? top - 7 : top + hgt + 15,
+        class:"dlab", fill:CVAR[m], "text-anchor":"middle"}, fmt(v,1)));
+    });
+    svg.appendChild(el("text", {x:cx, y:H-P.b+24, class:"ax", "text-anchor":"middle",
+      "font-size":"12.5"}, label.split("　")[0]));
+    svg.appendChild(el("text", {x:cx, y:H-P.b+41, class:"ax", "text-anchor":"middle",
+      "font-size":"11", fill:"var(--ink-3)"}, "n=" + R[k].n + "　市場 " + fmt(R[k].bh,1) + "%"));
+  });
+  svg.appendChild(el("text", {x:16, y:H/2, class:"axlab", "text-anchor":"middle",
+    transform:"rotate(-90 16 " + (H/2) + ")"}, "30 天平均報酬 (%)"));
+})();
+
+/* ---------------- table: regime detail ---------------- */
+(function regimeTable(){
+  const t = document.getElementById("t-regime"), R = D.rolling.regimes;
+  t.innerHTML = "<thead><tr><th>市場狀態</th><th>模式</th><th>平均%</th><th>中位%</th><th>勝率%</th>" +
+    "<th>P10%</th><th>P90%</th><th>網格利潤%</th><th>浮動盈虧%</th><th>資金費%</th><th>最大回撤%</th><th>成交</th></tr></thead>";
+  const tb = h("tbody");
+  [["up","上漲 >5%"],["range","盤整 ±5%"],["down","下跌 >5%"],["all","全部視窗"]].forEach(([k,label]) => {
+    MODES.forEach((m, i) => {
+      const d = R[k][m], tr = h("tr");
+      tr.appendChild(h("td", null, i === 0 ? "<b>" + label + "</b> <span class='dim'>n=" + R[k].n + "</span>" : ""));
+      tr.appendChild(h("td", {class:CLS[m]}, NAME[m]));
+      tr.appendChild(h("td", {class:sign(d.mean)}, "<b>" + fmt(d.mean) + "</b>"));
+      tr.appendChild(h("td", {class:sign(d.median)}, fmt(d.median)));
+      tr.appendChild(h("td", null, d.win));
+      tr.appendChild(h("td", {class:sign(d.p10)}, fmt(d.p10)));
+      tr.appendChild(h("td", {class:sign(d.p90)}, fmt(d.p90)));
+      tr.appendChild(h("td", null, d.grid.toFixed(2)));
+      tr.appendChild(h("td", {class:sign(d.float)}, fmt(d.float)));
+      tr.appendChild(h("td", {class:sign(d.fund)}, fmt(d.fund,3)));
+      tr.appendChild(h("td", null, d.dd.toFixed(2)));
+      tr.appendChild(h("td", {class:"dim"}, d.fills));
+      tb.appendChild(tr);
+    });
+  });
+  t.appendChild(tb);
+  t.appendChild(h("caption", null,
+    "P10 / P90 為該組視窗報酬的第 10 / 90 百分位。視窗每 3 天推進一次、彼此重疊 90%，勝率僅供分布參考，不是獨立試驗的統計量。"));
+})();
+
+/* ---------------- chart: alignment decomposition ---------------- */
+(function align(){
+  const svg = document.getElementById("c-align");
+  const W = 1000, H = 400, P = {t:36, r:150, b:44, l:190};
+  const rows = D.align;
+  const vals = rows.flatMap(r => [r.grid, r.float, r.ret]);
+  const xmin = Math.floor(Math.min(...vals, 0)/2)*2, xmax = Math.ceil(Math.max(...vals, 0)/2)*2;
+  const X = v => P.l + (v - xmin)/(xmax - xmin) * (W - P.l - P.r);
+  const rh = (H - P.t - P.b) / rows.length;
+  const bh = 15;
+
+  for(let v = Math.ceil(xmin/4)*4; v <= xmax; v += 4){
+    svg.appendChild(el("line", {x1:X(v), x2:X(v), y1:P.t-10, y2:H-P.b, class: v===0?"zero-line":"grid-line"}));
+    svg.appendChild(el("text", {x:X(v), y:H-P.b+20, class:"ax", "text-anchor":"middle"}, v + "%"));
+  }
+  svg.appendChild(el("text", {x:P.l, y:P.t-20, class:"ax", "text-anchor":"start", fill:"var(--ink-3)"}, "■ 網格利潤（已實現）　▨ 浮動盈虧（未實現）　◆ 總報酬"));
+
+  rows.forEach((r, i) => {
+    const cy = P.t + rh*i + rh/2;
+    const col = CVAR[r.mode];
+    svg.appendChild(el("text", {x:P.l-16, y:cy-4, class:"dlab", fill:col, "text-anchor":"end"}, r.case));
+    svg.appendChild(el("text", {x:P.l-16, y:cy+13, class:"ax", "text-anchor":"end"},
+      r.tag + "　區間內 " + r.in_range + "%"));
+
+    const bar = (v, y, opacity, pattern) => {
+      const x0 = X(Math.min(0, v)), x1 = X(Math.max(0, v));
+      const rct = el("rect", {x:x0, y, width:Math.max(1.5, x1-x0), height:bh,
+        fill:col, "fill-opacity":opacity, rx:3, stroke:"var(--surface)", "stroke-width":2});
+      return rct;
+    };
+    const g = bar(r.grid, cy - bh - 3, .95);
+    hit(g, "<b>" + r.case + "</b><br>網格利潤 " + fmt(r.grid) + "%（已實現）");
+    svg.appendChild(g);
+    const f = bar(r.float, cy + 3, .34);
+    hit(f, "<b>" + r.case + "</b><br>浮動盈虧 " + fmt(r.float) + "%（未實現）");
+    svg.appendChild(f);
+
+    // total marker
+    const tx = X(r.ret);
+    svg.appendChild(el("path", {d:`M${tx} ${cy-13} L${tx+8} ${cy} L${tx} ${cy+13} L${tx-8} ${cy} Z`,
+      fill:col, stroke:"var(--surface)", "stroke-width":2}));
+    svg.appendChild(el("text", {x:W-P.r+16, y:cy+5, class:"dlab", fill:col, "text-anchor":"start"},
+      "總報酬 " + fmt(r.ret) + "%"));
+  });
+  svg.appendChild(el("text", {x:(P.l+W-P.r)/2, y:H-8, class:"axlab", "text-anchor":"middle"}, "占投入本金 (%)"));
+})();
+
+/* ---------------- chart: mirror test ---------------- */
+(function mirrorChart(){
+  const svg = document.getElementById("c-mirror");
+  const W = 1000, H = 380, P = {t:24, r:24, b:70, l:58};
+  const rows = D.mirror;
+  const vals = rows.flatMap(r => [r.real_long, r.mirror_short]);
+  const ymax = Math.ceil(Math.max(...vals, 2)/5)*5, ymin = Math.floor(Math.min(...vals)/5)*5;
+  const Y = v => H - P.b - (v - ymin)/(ymax - ymin) * (H - P.t - P.b);
+  const gw = (W - P.l - P.r) / rows.length;
+  const bw = 60;
+
+  for(let v = Math.ceil(ymin/5)*5; v <= ymax; v += 5){
+    svg.appendChild(el("line", {x1:P.l, x2:W-P.r, y1:Y(v), y2:Y(v), class: v===0?"zero-line":"grid-line"}));
+    svg.appendChild(el("text", {x:P.l-10, y:Y(v)+4, class:"ax", "text-anchor":"end"}, v + "%"));
+  }
+  rows.forEach((r, i) => {
+    const cx = P.l + gw*i + gw/2;
+    [["real_long","long"],["mirror_short","short"]].forEach(([key, mode], j) => {
+      const v = r[key], x = cx + (j ? 1 : -1)*(bw/2 + 1) - bw/2;
+      const y0 = Y(0), y1 = Y(v);
+      const top = Math.min(y0, y1), hgt = Math.max(1.5, Math.abs(y1-y0));
+      const rct = el("rect", {x, y:top, width:bw, height:hgt, fill:CVAR[mode], rx:4,
+        stroke:"var(--surface)", "stroke-width":2});
+      hit(rct, "<b>" + r.label + "</b> · n=" + r.n + "<br>" +
+        (mode === "long" ? "多頭網格 / 真實路徑" : "空頭網格 / 鏡像路徑") + "　" + fmt(v) + "%");
+      svg.appendChild(rct);
+      svg.appendChild(el("text", {x:x+bw/2, y: v >= 0 ? top-7 : top+hgt+15, class:"dlab",
+        fill:CVAR[mode], "text-anchor":"middle"}, fmt(v,1)));
+    });
+    svg.appendChild(el("text", {x:cx, y:H-P.b+26, class:"ax", "text-anchor":"middle", "font-size":"12.5"}, r.label));
+    svg.appendChild(el("text", {x:cx, y:H-P.b+43, class:"ax", "text-anchor":"middle", "font-size":"11",
+      fill:"var(--ink-3)"}, "n=" + r.n + "　差距 " + fmt(r.gap,1)));
+  });
+  svg.appendChild(el("text", {x:16, y:H/2, class:"axlab", "text-anchor":"middle",
+    transform:"rotate(-90 16 " + (H/2) + ")"}, "30 天平均報酬 (%)"));
+})();
+
+/* ---------------- chart: equity curves + price panel ---------------- */
+(function curve(){
+  const c = D.curve, svg = document.getElementById("c-curve");
+  const W = 1000, H = 560, P = {t:22, r:120, b:46, l:62};
+  const pxH = 130, gapH = 34;
+  const eqTop = P.t + pxH + gapH, eqBot = H - P.b;
+  const n = c.px.length;
+  const X = i => P.l + i/(n-1) * (W - P.l - P.r);
+
+  const pmin = Math.min(...c.px), pmax = Math.max(...c.px);
+  const PY = v => P.t + pxH - (v - pmin)/(pmax - pmin) * pxH;
+  const evals = MODES.flatMap(m => c.curves[m]);
+  const emin = Math.floor(Math.min(...evals)/5)*5, emax = Math.ceil(Math.max(...evals)/5)*5;
+  const EY = v => eqBot - (v - emin)/(emax - emin) * (eqBot - eqTop);
+
+  // ---- price panel
+  svg.appendChild(el("text", {x:P.l, y:P.t-6, class:"ax", fill:"var(--ink-3)"},
+    "BTC 價格　網格區間 " + c.lower.toLocaleString() + " – " + c.upper.toLocaleString()));
+  [c.lower, c.upper].forEach(v => {
+    if(v >= pmin && v <= pmax)
+      svg.appendChild(el("line", {x1:P.l, x2:W-P.r, y1:PY(v), y2:PY(v),
+        stroke:"var(--rule-2)", "stroke-width":1, "stroke-dasharray":"4 4"}));
+  });
+  svg.appendChild(el("path", {d: c.px.map((v,i) => (i?"L":"M") + X(i) + " " + PY(v)).join(" "),
+    fill:"none", stroke:"var(--ink-3)", "stroke-width":1.6, "stroke-linejoin":"round"}));
+  [pmax, pmin].forEach(v => svg.appendChild(el("text", {x:W-P.r+10, y:PY(v)+4, class:"ax"},
+    Math.round(v).toLocaleString())));
+
+  // ---- equity panel
+  for(let v = Math.ceil(emin/5)*5; v <= emax; v += 5){
+    svg.appendChild(el("line", {x1:P.l, x2:W-P.r, y1:EY(v), y2:EY(v), class: v===0?"zero-line":"grid-line"}));
+    svg.appendChild(el("text", {x:P.l-10, y:EY(v)+4, class:"ax", "text-anchor":"end"}, fmt(v,0) + "%"));
+  }
+  MODES.forEach(m => {
+    svg.appendChild(el("path", {d: c.curves[m].map((v,i) => (i?"L":"M") + X(i) + " " + EY(v)).join(" "),
+      fill:"none", stroke:CVAR[m], "stroke-width":2, "stroke-linejoin":"round", "stroke-linecap":"round"}));
+  });
+  // end labels: nudge apart so near-identical finishes stay legible
+  const ends = MODES.map(m => {
+    const v = c.curves[m][c.curves[m].length-1];
+    return {m, v, y:EY(v), ly:EY(v)};
+  }).sort((a,b) => a.ly - b.ly);
+  for(let i = 1; i < ends.length; i++)
+    if(ends[i].ly - ends[i-1].ly < 17) ends[i].ly = ends[i-1].ly + 17;
+  ends.forEach(e => {
+    svg.appendChild(el("circle", {cx:X(n-1), cy:e.y, r:4.5, fill:CVAR[e.m],
+      stroke:"var(--surface)", "stroke-width":2}));
+    if(Math.abs(e.ly - e.y) > 2)
+      svg.appendChild(el("line", {x1:X(n-1)+6, y1:e.y, x2:W-P.r+6, y2:e.ly-4,
+        stroke:CVAR[e.m], "stroke-width":1, opacity:.5}));
+    svg.appendChild(el("text", {x:W-P.r+10, y:e.ly, class:"dlab", fill:CVAR[e.m]},
+      NAME[e.m] + " " + fmt(e.v,1) + "%"));
+  });
+
+  // ---- date axis
+  const ticks = [0, Math.floor(n*0.25), Math.floor(n*0.5), Math.floor(n*0.75), n-1];
+  ticks.forEach(i => {
+    const d = new Date(c.ts[i]);
+    svg.appendChild(el("text", {x:X(i), y:H-P.b+20, class:"ax", "text-anchor": i===0?"start":(i===n-1?"end":"middle")},
+      (d.getUTCMonth()+1) + "/" + d.getUTCDate()));
+  });
+  svg.appendChild(el("text", {x:16, y:(eqTop+eqBot)/2, class:"axlab", "text-anchor":"middle",
+    transform:"rotate(-90 16 " + ((eqTop+eqBot)/2) + ")"}, "淨值 (%)"));
+
+  // ---- crosshair
+  const cross = el("line", {y1:eqTop, y2:eqBot, stroke:"var(--rule-2)", "stroke-width":1, opacity:0});
+  svg.appendChild(cross);
+  const overlay = el("rect", {x:P.l, y:P.t, width:W-P.l-P.r, height:H-P.t-P.b, fill:"transparent"});
+  overlay.classList.add("hit");
+  overlay.addEventListener("mousemove", e => {
+    const box = svg.getBoundingClientRect();
+    const px = (e.clientX - box.left) / box.width * W;
+    let i = Math.round((px - P.l)/(W-P.l-P.r) * (n-1));
+    i = Math.max(0, Math.min(n-1, i));
+    cross.setAttribute("x1", X(i)); cross.setAttribute("x2", X(i)); cross.setAttribute("opacity", 1);
+    const d = new Date(c.ts[i]);
+    showTip(e, "<b>" + d.toISOString().slice(0,10) + "</b>　BTC " + c.px[i].toLocaleString() + "<br>" +
+      MODES.map(m => NAME[m] + " " + fmt(c.curves[m][i]) + "%").join("<br>"));
+  });
+  overlay.addEventListener("mouseleave", () => { cross.setAttribute("opacity", 0); hideTip(); });
+  svg.appendChild(overlay);
+
+  document.getElementById("curve-title").textContent =
+    c.inst + " · " + c.days + " 天（" + c.start + " → " + c.end + "）";
+  document.getElementById("curve-sub").textContent =
+    "網格區間 " + c.lower.toLocaleString() + " – " + c.upper.toLocaleString() +
+    " · 50 格 · 1x · 投入 10,000 USDT · 期間收盤價 98% 時間在區間內";
+  const M = c.meta;
+  document.getElementById("curve-cap").innerHTML =
+    "同一組參數下，多頭網格賺到最多網格利潤（<b>" + M.long.grid.toFixed(2) +
+    "%</b>，因為上漲時它一直在平倉），總報酬卻最低（" + fmt(M.long.ret) +
+    "%），最大回撤 <b>" + M.long.dd.toFixed(1) + "%</b> 是中性網格（" + M.neutral.dd.toFixed(1) +
+    "%）的六倍以上。網格利潤高不等於報酬高——差額全被浮虧與資金費吃掉。";
+})();
+
+/* ---------------- table: funding ---------------- */
+(function fundTable(){
+  const t = document.getElementById("t-fund"), F = D.funding;
+  t.innerHTML = "<thead><tr><th>模式</th><th>30 天平均資金費%</th><th>中位數%</th>" +
+    "<th>BTC 180 天%</th><th>ETH 180 天%</th><th>SOL 180 天%</th><th>DOGE 180 天%</th></tr></thead>";
+  const tb = h("tbody");
+  MODES.forEach(m => {
+    const tr = h("tr");
+    tr.appendChild(h("td", {class:CLS[m]}, NAME[m]));
+    tr.appendChild(h("td", {class:sign(F[m].mean)}, "<b>" + fmt(F[m].mean,3) + "</b>"));
+    tr.appendChild(h("td", {class:sign(F[m].median)}, fmt(F[m].median,3)));
+    D.headline["180"].forEach(row => tr.appendChild(h("td", {class:sign(row[m].fund)}, fmt(row[m].fund))));
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+  t.appendChild(h("caption", null,
+    "資金費以 OKX 實際結算費率逐次計入，數值為占投入本金的百分比。30 天欄位取自 " + F.n +
+    " 個資金費資料完整的視窗（共 " + F.n_total + " 個）——OKX 歷史資金費端點僅回溯約三個月。"));
+})();
+
+/* ---------------- table: robustness sweep ---------------- */
+(function sweepTable(){
+  const t = document.getElementById("t-sweep");
+  t.innerHTML = "<thead><tr><th>變動項</th><th>多頭 平均%</th><th>空頭 平均%</th><th>中性 平均%</th>" +
+    "<th>多頭 網格利潤%</th><th>空頭 網格利潤%</th><th>視窗數</th></tr></thead>";
+  const tb = h("tbody");
+  D.sweep.forEach((s, i) => {
+    const tr = h("tr");
+    tr.appendChild(h("td", null, i === 0 ? "<b>" + s.label + "</b>" : s.label));
+    tr.appendChild(h("td", {class:sign(s.long)}, fmt(s.long)));
+    tr.appendChild(h("td", {class:sign(s.short)}, fmt(s.short)));
+    tr.appendChild(h("td", {class:sign(s.neutral)}, fmt(s.neutral)));
+    tr.appendChild(h("td", null, s.lgrid.toFixed(2)));
+    tr.appendChild(h("td", null, s.sgrid.toFixed(2)));
+    tr.appendChild(h("td", {class:"dim"}, s.n));
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+  t.appendChild(h("caption", null,
+    "每列都是完整重跑一次滾動視窗分析。「5m K 線」與「15m 對照」用相同的兩個幣種，是判斷單根 K 線路徑假設影響的關鍵對照組。"));
+})();
+
+})();
+</script>
